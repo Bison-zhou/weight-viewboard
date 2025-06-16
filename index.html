@@ -645,6 +645,19 @@
                         datasets: [{
                             label: member,
                             data: weeklyData,
+                            borderColor: function (context) {
+                                const o = context.raw.o; // 开盘价 (本周初体重)
+                                const c = context.raw.c; // 收盘价 (本周末体重)
+                                // 对体重来说，上涨(c > o)是红色，下跌是绿色
+                                return c > o ? 'rgba(255, 0, 0, 1)' : 'rgba(0, 255, 0, 1)';
+                            },
+                            backgroundColor: function (context) {
+                                const o = context.raw.o;
+                                const c = context.raw.c;
+                                // 使用带透明度的颜色填充K线实体
+                                return c > o ? 'rgba(255, 0, 0, 0.7)' : 'rgba(0, 255, 0, 0.7)';
+                            },
+                            borderWidth: 1,
                         }]
                     },
                     options: {
@@ -657,10 +670,10 @@
                                     label: function (context) {
                                         const raw = context.raw;
                                         return [
-                                            `周开盘 (周日): ${raw.o.toFixed(2)}`,
-                                            `周最高: ${raw.h.toFixed(2)}`,
-                                            `周最低: ${raw.l.toFixed(2)}`,
-                                            `周收盘 (周六): ${raw.c.toFixed(2)}`
+                                            `开盘 (周日): ${raw.o.toFixed(2)}`,
+                                            `最高: ${raw.h.toFixed(2)}`,
+                                            `最低: ${raw.l.toFixed(2)}`,
+                                            `收盘 (周六): ${raw.c.toFixed(2)}`
                                         ];
                                     }
                                 }
@@ -676,15 +689,6 @@
                             y: {
                                 grid: { color: 'rgba(0,0,0,0.05)' },
                                 title: { display: true, text: '体重 (kg)' }
-                            }
-                        },
-                        elements: {
-                            candlestick: {
-                                color: {
-                                    up: '#FF0000',      // Red for weight increase (close > open)
-                                    down: '#00FF00',    // Green for weight decrease (close < open)
-                                    unchanged: '#999999'
-                                }
                             }
                         }
                     }
