@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>体重追踪看板</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <script src="https://cdn.jsdelivr.net/npm/luxon@3.3.0/build/global/luxon.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.min.js"></script>
     <!-- [NEW] Added library for candlestick charts -->
@@ -165,10 +164,11 @@
             height: 100% !important;
         }
 
-        /* [NEW] Styles for the candlestick chart grid */
+        /* [CHANGED] Styles for the candlestick chart grid layout */
         .candlestick-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(2, 1fr);
+            /* Default to 2 columns */
             gap: 25px;
             margin-top: 20px;
         }
@@ -308,6 +308,11 @@
             td {
                 padding: 8px 10px;
             }
+
+            /* [CHANGED] Candlestick grid becomes single column on smaller screens */
+            .candlestick-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -343,7 +348,6 @@
             </div>
         </div>
 
-        <!-- [CHANGED] Statistics panel is replaced with Candlestick chart panel -->
         <div class="panel">
             <div class="panel-title">
                 <span>成员周K线图</span>
@@ -455,12 +459,9 @@
                 const dateCell = row.c[0];
                 if (!dateCell || !dateCell.v) return;
 
-                // Handle date parsing robustly
                 let date;
-                // Google Sheets dates can be in "Date(YYYY,MM,DD)" format
                 const dateMatch = dateCell.v.match(/Date\((\d+),(\d+),(\d+)\)/);
                 if (dateMatch) {
-                    // Month is 0-indexed in JS Date
                     date = new Date(dateMatch[1], dateMatch[2], dateMatch[3]);
                 } else {
                     date = new Date(dateCell.v);
@@ -487,8 +488,6 @@
             const sortedDates = Object.keys(dataByDate).sort((a, b) => new Date(a) - new Date(b));
             return { members, dates: sortedDates, dataByDate, allWeights };
         }
-
-        // [REMOVED] calculateStats function is no longer needed.
 
         // 渲染成员筛选器
         function renderFilters() {
@@ -552,7 +551,6 @@
                         x: { type: 'time', time: { unit: 'day', tooltipFormat: 'yyyy-MM-dd', displayFormats: { day: 'MMM d' } }, title: { display: true, text: '日期', font: { size: 14, weight: 'bold' } }, grid: { display: false } }
                     },
                     plugins: {
-                        // [CHANGED] Legend point style is adjusted
                         legend: {
                             position: 'top',
                             labels: {
@@ -574,7 +572,7 @@
             });
         }
 
-        // [NEW] Function to calculate weekly K-line data
+        // [CHANGED] Function to calculate weekly K-line data with new logic
         function calculateWeeklyData(member, allWeights) {
             const memberWeights = allWeights.filter(d => d.member === member && d.weight);
             if (memberWeights.length === 0) return [];
@@ -583,11 +581,14 @@
 
             memberWeights.forEach(d => {
                 const date = luxon.DateTime.fromISO(d.date);
-                const weekKey = date.startOf('isoWeek').toISODate();
+                // A week is from Sunday (7) to Saturday (6).
+                // The key for the week will be the date of its starting Sunday.
+                const weekStartSunday = date.minus({ days: (date.weekday % 7) });
+                const weekKey = weekStartSunday.toISODate();
 
                 if (!weeklyData[weekKey]) {
                     weeklyData[weekKey] = {
-                        date: date.startOf('isoWeek'),
+                        date: weekStartSunday,
                         points: []
                     };
                 }
@@ -598,8 +599,9 @@
                 const week = weeklyData[weekKey];
                 week.points.sort((a, b) => a.date - b.date);
 
-                const openData = week.points.find(p => p.day === 1) || week.points[0];
-                const closeData = week.points.find(p => p.day === 7) || week.points[week.points.length - 1];
+                // Sunday is 7, Saturday is 6. Use fallbacks if exact day is not present.
+                const openData = week.points.find(p => p.day === 7) || week.points[0];
+                const closeData = week.points.find(p => p.day === 6) || week.points[week.points.length - 1];
 
                 return {
                     x: week.date.valueOf(),
@@ -611,17 +613,16 @@
             }).sort((a, b) => a.x - b.x);
         }
 
-        // [NEW] Function to render candlestick charts
+        // Function to render candlestick charts
         function renderCandlestickCharts() {
             const container = document.getElementById('candlestickChartsContainer');
-            // Destroy previous charts to prevent memory leaks
             candlestickCharts.forEach(chart => chart.destroy());
             candlestickCharts = [];
-            container.innerHTML = ''; // Clear previous content
+            container.innerHTML = '';
 
             rawData.members.forEach(member => {
                 const weeklyData = calculateWeeklyData(member, rawData.allWeights);
-                if (weeklyData.length < 2) return; // Need at least 2 weeks for a meaningful chart
+                if (weeklyData.length < 2) return;
 
                 const wrapper = document.createElement('div');
                 wrapper.className = 'candlestick-chart-wrapper';
@@ -648,16 +649,16 @@
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: {
-                            legend: { display: false }, // No legend needed for single-series chart
+                            legend: { display: false },
                             tooltip: {
                                 callbacks: {
                                     label: function (context) {
                                         const raw = context.raw;
                                         return [
-                                            `周开盘: ${raw.o.toFixed(2)}`,
+                                            `周开盘 (周日): ${raw.o.toFixed(2)}`,
                                             `周最高: ${raw.h.toFixed(2)}`,
                                             `周最低: ${raw.l.toFixed(2)}`,
-                                            `周收盘: ${raw.c.toFixed(2)}`
+                                            `周收盘 (周六): ${raw.c.toFixed(2)}`
                                         ];
                                     }
                                 }
@@ -767,7 +768,6 @@
 
                 renderChart();
                 renderTable();
-                // [CHANGED] Call renderCandlestickCharts instead of calculateStats
                 renderCandlestickCharts();
 
                 document.getElementById('updateTime').textContent = getFormattedTime();
