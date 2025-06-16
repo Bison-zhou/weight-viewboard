@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>体重看板</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.0.4/build/global/luxon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 25px;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .panel-title {
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            color: #3498db;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 8px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .user-filter {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            background: #edf2f7;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .user-filter:hover {
+            background: #e2e8f0;
+        }
+
+        .user-filter input {
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .user-filter span {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button:hover {
+            background: #2980b9;
+        }
+
+        canvas {
+            width: 100% !important;
+            height: 400px !important;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 0.95rem;
+        }
+
+        th,
+        td {
+            padding: 12px 15px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+
+        th {
+            background-color: #f1f5f9;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+
+        .date-cell {
+            font-weight: 600;
+            background: #f0f7ff;
+        }
+
+        .weight-cell {
+            font-weight: 600;
+            position: relative;
+        }
+
+        .delta {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            font-size: 0.7em;
+            padding: 1px 4px;
+            border-radius: 3px;
+        }
+
+        .positive {
+            color: #27ae60;
+            background: rgba(39, 174, 96, 0.1);
+        }
+
+        .negative {
+            color: #e74c3c;
+            background: rgba(231, 76, 60, 0.1);
+        }
+
+        .highlight {
+            background-color: #fff9db !important;
+        }
+
+        .stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .stat-card {
+            flex: 1;
+            min-width: 200px;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-card h3 {
+            color: #7f8c8d;
+            font-size: 1rem;
+            margin-bottom: 10px;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .stat-detail {
+            margin-top: 8px;
+            font-size: 0.9rem;
+            color: #7f8c8d;
+        }
+
+        .trend-up {
+            color: #27ae60;
+        }
+
+        .trend-down {
+            color: #e74c3c;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            .panel {
+                padding: 20px 15px;
+            }
+
+            th,
+            td {
+                padding: 8px 10px;
+            }
+
+            .stat-card {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>📊 团队体重追踪看板</h1>
+        <p>数据更新时间: <span id="updateTime">--</span></p>
+    </div>
+
+    <div class="dashboard">
+        <div class="panel">
+            <div class="panel-title">
+                <span>体重变化趋势图</span>
+            </div>
+
+            <div class="controls">
+                <div class="filter-group">
+                    <strong>筛选成员：</strong>
+                    <div id="filterContainer"></div>
+                </div>
+                <button onclick="refreshData()">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z" />
+                        <path
+                            d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z" />
+                    </svg>
+                    刷新数据
+                </button>
+            </div>
+
+            <canvas id="weightChart"></canvas>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">
+                <span>详细数据表</span>
+                <div>
+                    <label><input type="checkbox" id="showDelta" onchange="renderTable()"> 显示变化量</label>
+                </div>
+            </div>
+
+            <table id="weightTable">
+                <thead id="tableHeader"></thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <h3>最轻体重</h3>
+                <div class="stat-value" id="minWeight">--</div>
+                <div class="stat-detail" id="minWeightDetail">--</div>
+            </div>
+            <div class="stat-card">
+                <h3>最重体重</h3>
+                <div class="stat-value" id="maxWeight">--</div>
+                <div class="stat-detail" id="maxWeightDetail">--</div>
+            </div>
+            <div class="stat-card">
+                <h3>平均体重</h3>
+                <div class="stat-value" id="avgWeight">--</div>
+                <div class="stat-detail" id="avgTrend">--</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== 配置区域 =====
+        const CONFIG = {
+            SHEET_ID: "1MOELPmNQ0M9cFupYic6MTSKrBq8aehRdJ-sILfPoTOw", // 替换为你的表格ID
+            MEMBER_COLORS: {
+                'PD': '#FF6384',
+                'AX': '#36A2EB',
+                'YC': '#FFCE56',
+                'GL': '#4BC0C0',
+            },
+            REFRESH_INTERVAL: 300000 // 5分钟自动刷新（毫秒）
+        };
+        // ===================
+
+        // 全局变量
+        let chart = null;
+        let rawData = {};
+        let prevData = null;
+
+        // 工具函数：获取格式化时间
+        function getFormattedTime() {
+            return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // 工具函数：生成随机颜色
+        function getRandomColor() {
+            return `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`;
+        }
+
+        // 从Google表格获取数据
+        async function fetchData() {
+            const url = `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq?tqx=out:json&t=${Date.now()}`;
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+                const text = await response.text();
+                const jsonText = text.match(/\{.*\}/s);
+                if (!jsonText) throw new Error('Invalid response format');
+
+                return JSON.parse(jsonText[0]);
+            } catch (error) {
+                console.error('获取数据失败:', error);
+                alert(`数据加载失败: ${error.message}`);
+                return null;
+            }
+        }
+
+        // 处理表格数据（新格式）
+        function processData(jsonData) {
+            const table = jsonData.table;
+            const rows = table.rows;
+
+            // 获取成员列表（第一行，从第二列开始）
+            const members = [];
+            const headerCells = rows[0].c;
+            for (let i = 1; i < headerCells.length; i++) {
+                if (headerCells[i] && headerCells[i].v) {
+                    members.push(headerCells[i].v);
+                }
+            }
+
+            // 处理数据行
+            const dataByDate = {};
+            const allWeights = [];
+
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i].c;
+                if (!row[0] || !row[0].v) continue;
+
+                const date = new Date(row[0].v);
+                const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD格式
+
+                const dateData = { date: dateStr, rawDate: date };
+
+                for (let j = 0; j < members.length; j++) {
+                    const colIndex = j + 1;
+                    if (row[colIndex] && row[colIndex].v !== null) {
+                        const weight = parseFloat(row[colIndex].v);
+                        if (!isNaN(weight)) {
+                            dateData[members[j]] = weight;
+                            allWeights.push({
+                                member: members[j],
+                                date: dateStr,
+                                weight: weight
+                            });
+                        }
+                    }
+                }
+
+                dataByDate[dateStr] = dateData;
+            }
+
+            // 按日期排序
+            const sortedDates = Object.keys(dataByDate).sort((a, b) =>
+                new Date(a) - new Date(b)
+            );
+
+            return {
+                members,
+                dates: sortedDates,
+                dataByDate,
+                allWeights
+            };
+        }
+
+        // 计算统计信息
+        function calculateStats() {
+            if (!rawData.allWeights || rawData.allWeights.length === 0) return;
+
+            // 计算最轻体重
+            const minEntry = rawData.allWeights.reduce((min, curr) =>
+                curr.weight < min.weight ? curr : min
+            );
+            document.getElementById('minWeight').textContent = minEntry.weight.toFixed(1);
+            document.getElementById('minWeightDetail').innerHTML =
+                `${minEntry.member} · ${minEntry.date}`;
+
+            // 计算最重体重
+            const maxEntry = rawData.allWeights.reduce((max, curr) =>
+                curr.weight > max.weight ? curr : max
+            );
+            document.getElementById('maxWeight').textContent = maxEntry.weight.toFixed(1);
+            document.getElementById('maxWeightDetail').innerHTML =
+                `${maxEntry.member} · ${maxEntry.date}`;
+
+            // 计算平均体重
+            const totalWeight = rawData.allWeights.reduce((sum, curr) => sum + curr.weight, 0);
+            const avgWeight = totalWeight / rawData.allWeights.length;
+            document.getElementById('avgWeight').textContent = avgWeight.toFixed(1);
+
+            // 计算平均体重趋势
+            if (prevData && prevData.allWeights.length > 0) {
+                const prevTotal = prevData.allWeights.reduce((sum, curr) => sum + curr.weight, 0);
+                const prevAvg = prevTotal / prevData.allWeights.length;
+                const trend = avgWeight - prevAvg;
+                const trendClass = trend > 0 ? 'trend-up' : trend < 0 ? 'trend-down' : '';
+                const trendIcon = trend > 0 ? '↑' : trend < 0 ? '↓' : '→';
+
+                document.getElementById('avgTrend').innerHTML =
+                    `较上次 <span class="${trendClass}">${trendIcon} ${Math.abs(trend).toFixed(1)}kg</span>`;
+            } else {
+                document.getElementById('avgTrend').textContent = '暂无趋势数据';
+            }
+        }
+
+        // 渲染成员筛选器
+        function renderFilters() {
+            const container = document.getElementById('filterContainer');
+            container.innerHTML = '';
+
+            rawData.members.forEach(member => {
+                const color = CONFIG.MEMBER_COLORS[member] || getRandomColor();
+
+                const filter = document.createElement('div');
+                filter.className = 'user-filter';
+                filter.innerHTML = `
+          <input 
+            type="checkbox" 
+            name="user" 
+            value="${member}" 
+            checked
+            onchange="renderChart()"
+          >
+          <span style="background:${color}"></span>
+          ${member}
+        `;
+                container.appendChild(filter);
+            });
+        }
+
+        // 绘制图表
+        function renderChart() {
+            const ctx = document.getElementById('weightChart').getContext('2d');
+            const selectedMembers = Array.from(
+                document.querySelectorAll('input[name="user"]:checked')
+            ).map(el => el.value);
+
+            // 准备图表数据集
+            const datasets = selectedMembers.map(member => {
+                const color = CONFIG.MEMBER_COLORS[member] || getRandomColor();
+                const dataPoints = [];
+
+                rawData.dates.forEach(date => {
+                    if (rawData.dataByDate[date][member] !== undefined) {
+                        dataPoints.push({
+                            x: rawData.dataByDate[date].rawDate,
+                            y: rawData.dataByDate[date][member]
+                        });
+                    }
+                });
+
+                return {
+                    label: member,
+                    data: dataPoints,
+                    borderColor: color,
+                    backgroundColor: color + '20', // 添加透明度
+                    borderWidth: 3,
+                    pointRadius: 5,
+                    pointBackgroundColor: color,
+                    tension: 0.2,
+                    fill: false
+                };
+            });
+
+            // 销毁旧图表
+            if (chart) chart.destroy();
+
+            // 创建新图表
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: { datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    scales: {
+                        y: {
+                            title: {
+                                display: true,
+                                text: '体重 (kg)',
+                                font: { size: 14 }
+                            },
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                        },
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'day',
+                                tooltipFormat: 'yyyy-MM-dd',
+                                displayFormats: { day: 'MMM d' }
+                            },
+                            title: {
+                                display: true,
+                                text: '日期',
+                                font: { size: 14 }
+                            },
+                            grid: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                boxWidth: 15,
+                                padding: 15,
+                                font: { size: 13 }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            titleColor: '#2d3748',
+                            bodyColor: '#4a5568',
+                            borderColor: '#e2e8f0',
+                            borderWidth: 1,
+                            padding: 12,
+                            boxPadding: 4,
+                            usePointStyle: true,
+                            callbacks: {
+                                label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y}kg`
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 渲染数据表格
+        function renderTable() {
+            const showDelta = document.getElementById('showDelta').checked;
+            const headerRow = document.getElementById('tableHeader');
+            const tableBody = document.getElementById('tableBody');
+
+            // 清空表格
+            headerRow.innerHTML = '';
+            tableBody.innerHTML = '';
+
+            // 创建表头
+            const dateHeader = document.createElement('th');
+            dateHeader.textContent = '日期';
+            dateHeader.className = 'date-cell';
+            headerRow.appendChild(dateHeader);
+
+            rawData.members.forEach(member => {
+                const memberHeader = document.createElement('th');
+                memberHeader.textContent = member;
+                memberHeader.style.color = CONFIG.MEMBER_COLORS[member] || '#2d3748';
+                headerRow.appendChild(memberHeader);
+            });
+
+            // 添加数据行
+            let prevDateData = null;
+            rawData.dates.forEach(date => {
+                const row = document.createElement('tr');
+                const dateData = rawData.dataByDate[date];
+
+                // 日期单元格
+                const dateCell = document.createElement('td');
+                dateCell.textContent = date;
+                dateCell.className = 'date-cell';
+                row.appendChild(dateCell);
+
+                // 成员体重单元格
+                rawData.members.forEach(member => {
+                    const weightCell = document.createElement('td');
+                    weightCell.className = 'weight-cell';
+
+                    if (dateData[member] !== undefined) {
+                        weightCell.textContent = dateData[member].toFixed(1);
+
+                        // 显示变化量
+                        if (showDelta && prevDateData && prevDateData[member] !== undefined) {
+                            const delta = dateData[member] - prevDateData[member];
+                            const deltaSpan = document.createElement('span');
+                            deltaSpan.className = `delta ${delta > 0 ? 'positive' : 'negative'}`;
+                            deltaSpan.textContent = delta > 0 ? `+${delta.toFixed(1)}` : delta.toFixed(1);
+                            weightCell.appendChild(deltaSpan);
+                        }
+                    } else {
+                        weightCell.textContent = '-';
+                    }
+
+                    row.appendChild(weightCell);
+                });
+
+                tableBody.appendChild(row);
+                prevDateData = dateData;
+            });
+        }
+
+        // 刷新数据
+        async function refreshData() {
+            try {
+                document.getElementById('updateTime').textContent = getFormattedTime();
+
+                // 保存当前数据作为历史参考
+                prevData = rawData;
+
+                // 获取新数据
+                const jsonData = await fetchData();
+                if (!jsonData) return;
+
+                // 处理数据
+                rawData = processData(jsonData);
+
+                // 首次加载时渲染筛选器
+                if (!document.getElementById('filterContainer').innerHTML) {
+                    renderFilters();
+                }
+
+                // 渲染图表和表格
+                renderChart();
+                renderTable();
+
+                // 计算并显示统计数据
+                calculateStats();
+
+                console.log('数据刷新成功');
+            } catch (error) {
+                console.error('刷新数据时出错:', error);
+            }
+        }
+
+        // 页面加载时运行
+        window.onload = () => {
+            refreshData();
+            // 设置定时刷新
+            setInterval(refreshData, CONFIG.REFRESH_INTERVAL);
+        };
+    </script>
+</body>
+
+</html>
