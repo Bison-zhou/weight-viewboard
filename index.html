@@ -170,13 +170,13 @@
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             /* Default to 2 columns */
-            gap: 25px;
-            margin-top: 20px;
+            gap: 40px;
+            margin-top: 30px;
         }
 
         .candlestick-chart-wrapper {
             position: relative;
-            height: 300px;
+            height: 450px;
             /* Set a fixed height for each k-line chart */
         }
 
@@ -630,7 +630,7 @@
 
                 const title = document.createElement('div');
                 title.className = 'candlestick-title';
-                title.textContent = `${member} 周K线图`;
+                title.textContent = `${member} weekly`;
 
                 const canvas = document.createElement('canvas');
                 wrapper.appendChild(title);
@@ -643,7 +643,12 @@
                     data: {
                         datasets: [{
                             label: member,
-                            data: weeklyData
+                            data: weeklyData,
+                            color: {
+                                up: '#D90429',      // 上涨（收盘价>开盘价）时的颜色，设置为更鲜艳的红色
+                                down: '#27ae60',    // 下跌（开盘价>收盘价）时的颜色，设置为您CSS中的成功色
+                                unchanged: '#999'   // 不变时的颜色
+                            }
                         }]
                     },
                     options: {
