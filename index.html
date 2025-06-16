@@ -394,24 +394,23 @@
         const CONFIG = {
             SHEET_ID: "1MOELPmNQ0M9cFupYic6MTSKrBq8aehRdJ-sILfPoTOw", // 这是你的表格ID
             MEMBER_COLORS: {
-                'PD': '#36A2EB', 'AX': '#FF6384', 'YC': '#000000', 'GL': '#FFCE56',
+                'PD': '#FF6384', 'AX': '#36A2EB', 'YC': '#FFCE56', 'GL': '#4BC0C0',
             },
-            REFRESH_INTERVAL: 60000, // 1分钟自动刷新（毫秒）
+            REFRESH_INTERVAL: 300000, // 5分钟自动刷新（毫秒）
             DEBUG_MODE: true
         };
         // ===================
-
+    
         // 全局变量
-        let chart = null;
+        // let chart = null; // 【修正】不再需要全局变量来跟踪图表实例
         let rawData = {};
-        let prevData = null;
-
+    
         // 工具函数：获取格式化时间
         const getFormattedTime = () => new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-
-        // 工具函数：生成随机颜色，以防成员未在配置中定义
+    
+        // 工具函数：生成随机颜色
         const getRandomColor = () => `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`;
-
+    
         // 显示加载状态
         function toggleLoader(show) {
             let loader = document.getElementById('loader');
@@ -428,7 +427,7 @@
                 }
             }
         }
-
+    
         // 显示状态消息
         function showStatus(message, isError = false) {
             const statusEl = document.getElementById('statusMessage');
@@ -439,32 +438,29 @@
                 setTimeout(() => { statusEl.style.display = 'none'; }, 5000);
             }
         }
-
+    
         // 从Google表格获取数据
         async function fetchData() {
             const url = `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq?tqx=out:json&t=${Date.now()}`;
             if (CONFIG.DEBUG_MODE) console.log(`[INFO] 请求数据: ${url}`);
-
+    
             try {
                 const response = await fetch(url);
                 if (!response.ok) throw new Error(`HTTP错误! 状态码: ${response.status}`);
-
+    
                 const text = await response.text();
-                // Google gviz API 会返回一个 JSONP 格式的响应，我们需要从中提取纯 JSON
                 const jsonMatch = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);/);
-
+    
                 if (!jsonMatch || !jsonMatch[1]) {
                     throw new Error('无法从响应中解析JSONP数据。');
                 }
-
+    
                 const jsonData = JSON.parse(jsonMatch[1]);
-
-                // **关键调试点**: 检查Google API是否在JSON内部返回了错误
                 if (jsonData.status === 'error') {
                     const errorDetails = jsonData.errors.map(e => e.detailed_message).join('\n');
                     throw new Error(`Google Sheet API 错误: ${errorDetails}`);
                 }
-
+    
                 return jsonData;
             } catch (error) {
                 console.error('[ERROR] 获取数据失败:', error);
@@ -472,25 +468,24 @@
                 return null;
             }
         }
-
+    
         // 处理原始JSON数据
         function processData(jsonData) {
             if (!jsonData || !jsonData.table || !jsonData.table.rows || jsonData.table.rows.length === 0) {
                 throw new Error('表格数据为空或格式不正确。');
             }
-
+    
             const { cols, rows } = jsonData.table;
-            const members = cols.slice(1).map(col => col.label).filter(Boolean); // 从第二列开始获取成员名
+            const members = cols.slice(1).map(col => col.label).filter(Boolean);
             if (members.length === 0) throw new Error('未找到成员名称，请检查表格标题行。');
-
+    
             const dataByDate = {};
             const allWeights = [];
-
+    
             rows.forEach((row, rowIndex) => {
                 const dateCell = row.c[0];
-                if (!dateCell || !dateCell.v) return; // 跳过日期为空的行
-
-                // Google Sheet的日期可能是 'Date(YYYY,MM,DD)' 格式
+                if (!dateCell || !dateCell.v) return;
+    
                 const dateStr = dateCell.f || new Date(dateCell.v).toISOString().split('T')[0];
                 const date = new Date(dateStr);
                 if (isNaN(date.getTime())) {
@@ -498,7 +493,7 @@
                     return;
                 }
                 const isoDate = date.toISOString().split('T')[0];
-
+    
                 const dateData = { date: isoDate, rawDate: date };
                 members.forEach((member, memberIndex) => {
                     const weightCell = row.c[memberIndex + 1];
@@ -512,33 +507,32 @@
                 });
                 dataByDate[isoDate] = dateData;
             });
-
+    
             const sortedDates = Object.keys(dataByDate).sort((a, b) => new Date(a) - new Date(b));
             return { members, dates: sortedDates, dataByDate, allWeights };
         }
-
+    
         // 计算统计信息
         function calculateStats() {
             if (!rawData.allWeights || rawData.allWeights.length === 0) return;
-
-            const weights = rawData.allWeights.map(d => d.weight);
+    
             const minEntry = rawData.allWeights.reduce((min, curr) => curr.weight < min.weight ? curr : min);
             document.getElementById('minWeight').textContent = `${minEntry.weight.toFixed(1)} kg`;
             document.getElementById('minWeightDetail').textContent = `${minEntry.member} · ${minEntry.date}`;
-
+    
             const maxEntry = rawData.allWeights.reduce((max, curr) => curr.weight > max.weight ? curr : max);
             document.getElementById('maxWeight').textContent = `${maxEntry.weight.toFixed(1)} kg`;
             document.getElementById('maxWeightDetail').textContent = `${maxEntry.member} · ${maxEntry.date}`;
-
-            const avgWeight = weights.reduce((sum, w) => sum + w, 0) / weights.length;
+    
+            const avgWeight = rawData.allWeights.reduce((sum, w) => sum + w, 0) / rawData.allWeights.length;
             document.getElementById('avgWeight').textContent = `${avgWeight.toFixed(1)} kg`;
             document.getElementById('avgTrend').textContent = '等待下次刷新以计算趋势';
         }
-
+    
         // 渲染成员筛选器
         function renderFilters() {
             const container = document.getElementById('filterContainer');
-            container.innerHTML = ''; // 清空以防重复渲染
+            container.innerHTML = '';
             rawData.members.forEach(member => {
                 const color = CONFIG.MEMBER_COLORS[member] || getRandomColor();
                 const filter = document.createElement('label');
@@ -551,25 +545,34 @@
                 container.appendChild(filter);
             });
         }
-
+        
         // 绘制图表
         function renderChart() {
-            const ctx = document.getElementById('weightChart');
+            // 【修正】使用 Chart.js 的官方API来获取并销毁已存在的图表实例，这是最稳妥的方法
+            const canvasId = 'weightChart';
+            const existingChart = Chart.getChart(canvasId);
+            if (existingChart) {
+                existingChart.destroy();
+            }
+    
+            const ctx = document.getElementById(canvasId);
             if (!ctx || !rawData.dates) return;
-            if (chart) chart.destroy();
-
+    
             const selectedMembers = Array.from(document.querySelectorAll('input[name="user"]:checked')).map(el => el.value);
             if (selectedMembers.length === 0) {
                 showStatus("请至少选择一个成员来显示图表", true);
+                // 清空画布
+                const context = ctx.getContext('2d');
+                context.clearRect(0, 0, ctx.width, ctx.height);
                 return;
             }
-
+    
             const datasets = selectedMembers.map(member => ({
                 label: member,
                 data: rawData.dates.map(date => ({
                     x: rawData.dataByDate[date].rawDate,
                     y: rawData.dataByDate[date][member]
-                })).filter(p => p.y !== undefined), // 过滤掉没有数据的点
+                })).filter(p => p.y !== undefined),
                 borderColor: CONFIG.MEMBER_COLORS[member] || getRandomColor(),
                 backgroundColor: (CONFIG.MEMBER_COLORS[member] || getRandomColor()) + '30',
                 borderWidth: 2.5,
@@ -578,8 +581,9 @@
                 tension: 0.3,
                 fill: false
             }));
-
-            chart = new Chart(ctx, {
+    
+            // 【修正】直接创建新图表，不再将其赋值给全局变量
+            new Chart(ctx, {
                 type: 'line',
                 data: { datasets },
                 options: {
@@ -600,14 +604,14 @@
                 }
             });
         }
-
+    
         // 渲染数据表格
         function renderTable() {
             const showDelta = document.getElementById('showDelta').checked;
             const headerRow = document.getElementById('tableHeader');
             const tableBody = document.getElementById('tableBody');
-            headerRow.innerHTML = ''; tableBody.innerHTML = ''; // 清空
-
+            headerRow.innerHTML = ''; tableBody.innerHTML = '';
+    
             const dateHeader = document.createElement('th');
             dateHeader.textContent = '日期';
             headerRow.appendChild(dateHeader);
@@ -617,29 +621,26 @@
                 memberHeader.style.color = CONFIG.MEMBER_COLORS[member] || '#333';
                 headerRow.appendChild(memberHeader);
             });
-
-            let prevDateData = null;
-            // 从最近的日期开始渲染
+    
             [...rawData.dates].reverse().forEach(date => {
                 const row = document.createElement('tr');
                 const dateData = rawData.dataByDate[date];
                 const dayOfWeek = dateData.rawDate.getDay();
-
+    
                 const dateCell = document.createElement('td');
                 dateCell.textContent = date;
                 dateCell.className = 'date-cell';
                 if (dayOfWeek === 0 || dayOfWeek === 6) {
-                    row.classList.add('weekend-highlight'); // 周末高亮
+                    row.classList.add('weekend-highlight');
                 }
                 row.appendChild(dateCell);
-
+    
                 rawData.members.forEach(member => {
                     const weightCell = document.createElement('td');
                     weightCell.className = 'weight-cell';
                     if (dateData[member] !== undefined) {
                         weightCell.innerHTML = `<span>${dateData[member].toFixed(1)}</span>`;
                         if (showDelta) {
-                            // 找到该成员的上一个有效数据点
                             let prevWeight = null;
                             for (let i = rawData.dates.indexOf(date) - 1; i >= 0; i--) {
                                 const prevDate = rawData.dates[i];
@@ -650,9 +651,9 @@
                             }
                             if (prevWeight !== null) {
                                 const delta = dateData[member] - prevWeight;
-                                if (Math.abs(delta) > 0.01) { // 只有在有变化时才显示
+                                if (Math.abs(delta) > 0.01) {
                                     const deltaSpan = document.createElement('span');
-                                    deltaSpan.className = `delta ${delta > 0 ? 'negative' : 'positive'}`; // 体重增加是negative情绪
+                                    deltaSpan.className = `delta ${delta > 0 ? 'negative' : 'positive'}`;
                                     deltaSpan.textContent = delta > 0 ? `+${delta.toFixed(1)}` : delta.toFixed(1);
                                     weightCell.appendChild(deltaSpan);
                                 }
@@ -664,52 +665,51 @@
                     row.appendChild(weightCell);
                 });
                 tableBody.appendChild(row);
-                prevDateData = dateData;
             });
         }
-
+    
         // 主刷新函数
         async function refreshData() {
             toggleLoader(true);
-            document.getElementById('weightChart').style.opacity = '0.5';
+            document.getElementById('chartContainer').style.opacity = '0.5';
             showStatus("正在加载最新数据...", false);
-
+    
             try {
                 const jsonData = await fetchData();
                 if (!jsonData) {
                     toggleLoader(false);
-                    document.getElementById('weightChart').style.opacity = '1';
-                    return; // fetchData内部已处理错误显示
+                    document.getElementById('chartContainer').style.opacity = '1';
+                    return;
                 }
-
-                // 仅在首次加载时渲染筛选器
+    
                 const isFirstLoad = !rawData.members;
                 rawData = processData(jsonData);
-
+    
                 if (isFirstLoad) {
                     renderFilters();
                 }
-
+    
                 renderChart();
                 renderTable();
                 calculateStats();
-
+    
                 document.getElementById('updateTime').textContent = getFormattedTime();
                 showStatus("数据加载成功!", false);
-
+    
             } catch (error) {
                 console.error('[ERROR] 处理数据时出错:', error);
                 showStatus(`处理数据出错: ${error.message}`, true);
+                // 即使出错，也要确保图表被正确销毁，以防下次刷新失败
+                renderChart();
             } finally {
                 toggleLoader(false);
-                document.getElementById('weightChart').style.opacity = '1';
+                document.getElementById('chartContainer').style.opacity = '1';
             }
         }
-
+    
         // 页面加载时运行
         window.onload = () => {
             refreshData();
-            // 设置定时刷新
             if (CONFIG.REFRESH_INTERVAL > 0) {
                 setInterval(refreshData, CONFIG.REFRESH_INTERVAL);
             }
