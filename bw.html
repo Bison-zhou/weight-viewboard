@@ -1,12 +1,27 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 
 <head>
-    <title>体重看板</title>
+    <meta charset="UTF--8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>体重追踪看板</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/luxon@3.0.4/build/global/luxon.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.min.js"></script>
     <style>
+        /* CSS 样式进行了全面优化和美化 */
+        :root {
+            --primary-color: #3498db;
+            --primary-color-dark: #2980b9;
+            --text-color: #2c3e50;
+            --background-color: #f4f7f9;
+            --panel-background: #ffffff;
+            --border-color: #e2e8f0;
+            --success-color: #27ae60;
+            --danger-color: #e74c3c;
+            --font-family: 'Segoe UI', 'Helvetica Neue', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -14,12 +29,12 @@
         }
 
         body {
-            font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            font-family: var(--font-family);
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
-            background: #f8f9fa;
-            color: #333;
+            background: var(--background-color);
+            color: var(--text-color);
             line-height: 1.6;
         }
 
@@ -27,13 +42,13 @@
             text-align: center;
             margin-bottom: 30px;
             padding: 20px;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+            background: var(--panel-background);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
         }
 
         .header h1 {
-            color: #2c3e50;
+            color: var(--text-color);
             margin-bottom: 10px;
         }
 
@@ -44,18 +59,24 @@
         }
 
         .panel {
-            background: white;
+            background: var(--panel-background);
             border-radius: 12px;
             padding: 25px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.07);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .panel:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
         }
 
         .panel-title {
             font-size: 1.4rem;
             margin-bottom: 20px;
             padding-bottom: 15px;
-            border-bottom: 1px solid #eee;
-            color: #3498db;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--primary-color);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -69,6 +90,7 @@
             padding: 15px;
             background: #f8fafc;
             border-radius: 8px;
+            align-items: center;
         }
 
         .filter-group {
@@ -107,21 +129,30 @@
         }
 
         button {
-            background: #3498db;
+            background: var(--primary-color);
             color: white;
             border: none;
             padding: 10px 20px;
             border-radius: 6px;
             cursor: pointer;
             font-weight: 600;
-            transition: background 0.2s;
+            transition: background 0.2s, transform 0.1s;
             display: flex;
             align-items: center;
             gap: 8px;
         }
 
         button:hover {
-            background: #2980b9;
+            background: var(--primary-color-dark);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        #chartContainer {
+            position: relative;
+            min-height: 400px;
         }
 
         canvas {
@@ -140,7 +171,7 @@
         td {
             padding: 12px 15px;
             text-align: center;
-            border: 1px solid #e2e8f0;
+            border: 1px solid var(--border-color);
         }
 
         th {
@@ -159,48 +190,50 @@
             background: #f0f7ff;
         }
 
+        .weekend-highlight {
+            background-color: #fff9db !important;
+        }
+
         .weight-cell {
             font-weight: 600;
             position: relative;
         }
 
         .delta {
-            position: absolute;
-            bottom: 2px;
-            right: 2px;
-            font-size: 0.7em;
-            padding: 1px 4px;
-            border-radius: 3px;
+            font-size: 0.75em;
+            padding: 2px 5px;
+            border-radius: 4px;
+            margin-left: 8px;
         }
 
         .positive {
-            color: #27ae60;
+            color: var(--success-color);
             background: rgba(39, 174, 96, 0.1);
         }
 
         .negative {
-            color: #e74c3c;
+            color: var(--danger-color);
             background: rgba(231, 76, 60, 0.1);
         }
 
-        .highlight {
-            background-color: #fff9db !important;
-        }
-
         .stats {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
             margin-top: 25px;
         }
 
         .stat-card {
-            flex: 1;
-            min-width: 200px;
-            background: white;
+            background: var(--panel-background);
             border-radius: 10px;
             padding: 20px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+            border-left: 5px solid;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
         }
 
         .stat-card h3 {
@@ -210,9 +243,9 @@
         }
 
         .stat-value {
-            font-size: 1.8rem;
+            font-size: 2rem;
             font-weight: 700;
-            color: #2c3e50;
+            color: var(--text-color);
         }
 
         .stat-detail {
@@ -221,12 +254,51 @@
             color: #7f8c8d;
         }
 
-        .trend-up {
-            color: #27ae60;
+        .status-message {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 500;
+            transition: opacity 0.3s;
         }
 
-        .trend-down {
-            color: #e74c3c;
+        .status-error {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ffcdd2;
+        }
+
+        .status-info {
+            background: #e3f2fd;
+            color: #1565c0;
+            border: 1px solid #bbdefb;
+        }
+
+        /* 加载动画 */
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--primary-color);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            margin-top: -25px;
+            margin-left: -25px;
+            z-index: 10;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         @media (max-width: 768px) {
@@ -236,6 +308,7 @@
 
             .controls {
                 flex-direction: column;
+                align-items: stretch;
             }
 
             .panel {
@@ -246,10 +319,6 @@
             td {
                 padding: 8px 10px;
             }
-
-            .stat-card {
-                min-width: 100%;
-            }
         }
     </style>
 </head>
@@ -258,6 +327,7 @@
     <div class="header">
         <h1>📊 团队体重追踪看板</h1>
         <p>数据更新时间: <span id="updateTime">--</span></p>
+        <div id="statusMessage" class="status-message" style="display:none;"></div>
     </div>
 
     <div class="dashboard">
@@ -265,7 +335,6 @@
             <div class="panel-title">
                 <span>体重变化趋势图</span>
             </div>
-
             <div class="controls">
                 <div class="filter-group">
                     <strong>筛选成员：</strong>
@@ -280,39 +349,42 @@
                     刷新数据
                 </button>
             </div>
+            <div id="chartContainer">
+                <canvas id="weightChart"></canvas>
+            </div>
+        </div>
 
-            <canvas id="weightChart"></canvas>
+        <div class="stats">
+            <div class="stat-card" style="border-color: var(--success-color);">
+                <h3>最低体重</h3>
+                <div class="stat-value" id="minWeight">--</div>
+                <div class="stat-detail" id="minWeightDetail">--</div>
+            </div>
+            <div class="stat-card" style="border-color: var(--danger-color);">
+                <h3>最高体重</h3>
+                <div class="stat-value" id="maxWeight">--</div>
+                <div class="stat-detail" id="maxWeightDetail">--</div>
+            </div>
+            <div class="stat-card" style="border-color: var(--primary-color);">
+                <h3>平均体重</h3>
+                <div class="stat-value" id="avgWeight">--</div>
+                <div class="stat-detail" id="avgTrend">--</div>
+            </div>
         </div>
 
         <div class="panel">
             <div class="panel-title">
                 <span>详细数据表</span>
                 <div>
-                    <label><input type="checkbox" id="showDelta" onchange="renderTable()"> 显示变化量</label>
+                    <label style="cursor:pointer; font-size: 0.9em;"><input type="checkbox" id="showDelta"
+                            onchange="renderTable()"> 显示与上次数据的变化量</label>
                 </div>
             </div>
-
-            <table id="weightTable">
-                <thead id="tableHeader"></thead>
-                <tbody id="tableBody"></tbody>
-            </table>
-        </div>
-
-        <div class="stats">
-            <div class="stat-card">
-                <h3>最轻体重</h3>
-                <div class="stat-value" id="minWeight">--</div>
-                <div class="stat-detail" id="minWeightDetail">--</div>
-            </div>
-            <div class="stat-card">
-                <h3>最重体重</h3>
-                <div class="stat-value" id="maxWeight">--</div>
-                <div class="stat-detail" id="maxWeightDetail">--</div>
-            </div>
-            <div class="stat-card">
-                <h3>平均体重</h3>
-                <div class="stat-value" id="avgWeight">--</div>
-                <div class="stat-detail" id="avgTrend">--</div>
+            <div style="max-height: 500px; overflow-y: auto;">
+                <table id="weightTable">
+                    <thead id="tableHeader"></thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -320,14 +392,12 @@
     <script>
         // ===== 配置区域 =====
         const CONFIG = {
-            SHEET_ID: "1MOELPmNQ0M9cFupYic6MTSKrBq8aehRdJ-sILfPoTOw", // 替换为你的表格ID
+            SHEET_ID: "1MOELPmNQ0M9cFupYic6MTSKrBq8aehRdJ-sILfPoTOw", // 这是你的表格ID
             MEMBER_COLORS: {
-                'PD': '#FF6384',
-                'AX': '#36A2EB',
-                'YC': '#FFCE56',
-                'GL': '#4BC0C0',
+                'PD': '#FF6384', 'AX': '#36A2EB', 'YC': '#FFCE56', 'GL': '#4BC0C0',
             },
-            REFRESH_INTERVAL: 300000 // 5分钟自动刷新（毫秒）
+            REFRESH_INTERVAL: 300000, // 5分钟自动刷新（毫秒）
+            DEBUG_MODE: true
         };
         // ===================
 
@@ -337,251 +407,194 @@
         let prevData = null;
 
         // 工具函数：获取格式化时间
-        function getFormattedTime() {
-            return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const getFormattedTime = () => new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+
+        // 工具函数：生成随机颜色，以防成员未在配置中定义
+        const getRandomColor = () => `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`;
+
+        // 显示加载状态
+        function toggleLoader(show) {
+            let loader = document.getElementById('loader');
+            if (show) {
+                if (!loader) {
+                    loader = document.createElement('div');
+                    loader.id = 'loader';
+                    loader.className = 'loader';
+                    document.getElementById('chartContainer').appendChild(loader);
+                }
+            } else {
+                if (loader) {
+                    loader.remove();
+                }
+            }
         }
 
-        // 工具函数：生成随机颜色
-        function getRandomColor() {
-            return `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`;
+        // 显示状态消息
+        function showStatus(message, isError = false) {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.textContent = message;
+            statusEl.style.display = 'block';
+            statusEl.className = `status-message ${isError ? 'status-error' : 'status-info'}`;
+            if (!isError) {
+                setTimeout(() => { statusEl.style.display = 'none'; }, 5000);
+            }
         }
 
         // 从Google表格获取数据
         async function fetchData() {
             const url = `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq?tqx=out:json&t=${Date.now()}`;
+            if (CONFIG.DEBUG_MODE) console.log(`[INFO] 请求数据: ${url}`);
 
             try {
                 const response = await fetch(url);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                if (!response.ok) throw new Error(`HTTP错误! 状态码: ${response.status}`);
 
                 const text = await response.text();
-                const jsonText = text.match(/\{.*\}/s);
-                if (!jsonText) throw new Error('Invalid response format');
+                // Google gviz API 会返回一个 JSONP 格式的响应，我们需要从中提取纯 JSON
+                const jsonMatch = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);/);
 
-                return JSON.parse(jsonText[0]);
+                if (!jsonMatch || !jsonMatch[1]) {
+                    throw new Error('无法从响应中解析JSONP数据。');
+                }
+
+                const jsonData = JSON.parse(jsonMatch[1]);
+
+                // **关键调试点**: 检查Google API是否在JSON内部返回了错误
+                if (jsonData.status === 'error') {
+                    const errorDetails = jsonData.errors.map(e => e.detailed_message).join('\n');
+                    throw new Error(`Google Sheet API 错误: ${errorDetails}`);
+                }
+
+                return jsonData;
             } catch (error) {
-                console.error('获取数据失败:', error);
-                alert(`数据加载失败: ${error.message}`);
+                console.error('[ERROR] 获取数据失败:', error);
+                showStatus(`获取数据失败: ${error.message}`, true);
                 return null;
             }
         }
 
-        // 处理表格数据（新格式）
+        // 处理原始JSON数据
         function processData(jsonData) {
-            const table = jsonData.table;
-            const rows = table.rows;
-
-            // 获取成员列表（第一行，从第二列开始）
-            const members = [];
-            const headerCells = rows[0].c;
-            for (let i = 1; i < headerCells.length; i++) {
-                if (headerCells[i] && headerCells[i].v) {
-                    members.push(headerCells[i].v);
-                }
+            if (!jsonData || !jsonData.table || !jsonData.table.rows || jsonData.table.rows.length === 0) {
+                throw new Error('表格数据为空或格式不正确。');
             }
 
-            // 处理数据行
+            const { cols, rows } = jsonData.table;
+            const members = cols.slice(1).map(col => col.label).filter(Boolean); // 从第二列开始获取成员名
+            if (members.length === 0) throw new Error('未找到成员名称，请检查表格标题行。');
+
             const dataByDate = {};
             const allWeights = [];
 
-            for (let i = 1; i < rows.length; i++) {
-                const row = rows[i].c;
-                if (!row[0] || !row[0].v) continue;
+            rows.forEach((row, rowIndex) => {
+                const dateCell = row.c[0];
+                if (!dateCell || !dateCell.v) return; // 跳过日期为空的行
 
-                const date = new Date(row[0].v);
-                const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD格式
+                // Google Sheet的日期可能是 'Date(YYYY,MM,DD)' 格式
+                const dateStr = dateCell.f || new Date(dateCell.v).toISOString().split('T')[0];
+                const date = new Date(dateStr);
+                if (isNaN(date.getTime())) {
+                    console.warn(`[WARN] 无效日期 "${dateCell.v}" 在行 ${rowIndex + 1}, 已跳过。`);
+                    return;
+                }
+                const isoDate = date.toISOString().split('T')[0];
 
-                const dateData = { date: dateStr, rawDate: date };
-
-                for (let j = 0; j < members.length; j++) {
-                    const colIndex = j + 1;
-                    if (row[colIndex] && row[colIndex].v !== null) {
-                        const weight = parseFloat(row[colIndex].v);
+                const dateData = { date: isoDate, rawDate: date };
+                members.forEach((member, memberIndex) => {
+                    const weightCell = row.c[memberIndex + 1];
+                    if (weightCell && weightCell.v !== null) {
+                        const weight = parseFloat(weightCell.v);
                         if (!isNaN(weight)) {
-                            dateData[members[j]] = weight;
-                            allWeights.push({
-                                member: members[j],
-                                date: dateStr,
-                                weight: weight
-                            });
+                            dateData[member] = weight;
+                            allWeights.push({ member, date: isoDate, weight });
                         }
                     }
-                }
+                });
+                dataByDate[isoDate] = dateData;
+            });
 
-                dataByDate[dateStr] = dateData;
-            }
-
-            // 按日期排序
-            const sortedDates = Object.keys(dataByDate).sort((a, b) =>
-                new Date(a) - new Date(b)
-            );
-
-            return {
-                members,
-                dates: sortedDates,
-                dataByDate,
-                allWeights
-            };
+            const sortedDates = Object.keys(dataByDate).sort((a, b) => new Date(a) - new Date(b));
+            return { members, dates: sortedDates, dataByDate, allWeights };
         }
 
         // 计算统计信息
         function calculateStats() {
             if (!rawData.allWeights || rawData.allWeights.length === 0) return;
 
-            // 计算最轻体重
-            const minEntry = rawData.allWeights.reduce((min, curr) =>
-                curr.weight < min.weight ? curr : min
-            );
-            document.getElementById('minWeight').textContent = minEntry.weight.toFixed(1);
-            document.getElementById('minWeightDetail').innerHTML =
-                `${minEntry.member} · ${minEntry.date}`;
+            const weights = rawData.allWeights.map(d => d.weight);
+            const minEntry = rawData.allWeights.reduce((min, curr) => curr.weight < min.weight ? curr : min);
+            document.getElementById('minWeight').textContent = `${minEntry.weight.toFixed(1)} kg`;
+            document.getElementById('minWeightDetail').textContent = `${minEntry.member} · ${minEntry.date}`;
 
-            // 计算最重体重
-            const maxEntry = rawData.allWeights.reduce((max, curr) =>
-                curr.weight > max.weight ? curr : max
-            );
-            document.getElementById('maxWeight').textContent = maxEntry.weight.toFixed(1);
-            document.getElementById('maxWeightDetail').innerHTML =
-                `${maxEntry.member} · ${maxEntry.date}`;
+            const maxEntry = rawData.allWeights.reduce((max, curr) => curr.weight > max.weight ? curr : max);
+            document.getElementById('maxWeight').textContent = `${maxEntry.weight.toFixed(1)} kg`;
+            document.getElementById('maxWeightDetail').textContent = `${maxEntry.member} · ${maxEntry.date}`;
 
-            // 计算平均体重
-            const totalWeight = rawData.allWeights.reduce((sum, curr) => sum + curr.weight, 0);
-            const avgWeight = totalWeight / rawData.allWeights.length;
-            document.getElementById('avgWeight').textContent = avgWeight.toFixed(1);
-
-            // 计算平均体重趋势
-            if (prevData && prevData.allWeights.length > 0) {
-                const prevTotal = prevData.allWeights.reduce((sum, curr) => sum + curr.weight, 0);
-                const prevAvg = prevTotal / prevData.allWeights.length;
-                const trend = avgWeight - prevAvg;
-                const trendClass = trend > 0 ? 'trend-up' : trend < 0 ? 'trend-down' : '';
-                const trendIcon = trend > 0 ? '↑' : trend < 0 ? '↓' : '→';
-
-                document.getElementById('avgTrend').innerHTML =
-                    `较上次 <span class="${trendClass}">${trendIcon} ${Math.abs(trend).toFixed(1)}kg</span>`;
-            } else {
-                document.getElementById('avgTrend').textContent = '暂无趋势数据';
-            }
+            const avgWeight = weights.reduce((sum, w) => sum + w, 0) / weights.length;
+            document.getElementById('avgWeight').textContent = `${avgWeight.toFixed(1)} kg`;
+            document.getElementById('avgTrend').textContent = '等待下次刷新以计算趋势';
         }
 
         // 渲染成员筛选器
         function renderFilters() {
             const container = document.getElementById('filterContainer');
-            container.innerHTML = '';
-
+            container.innerHTML = ''; // 清空以防重复渲染
             rawData.members.forEach(member => {
                 const color = CONFIG.MEMBER_COLORS[member] || getRandomColor();
-
-                const filter = document.createElement('div');
+                const filter = document.createElement('label');
                 filter.className = 'user-filter';
                 filter.innerHTML = `
-          <input 
-            type="checkbox" 
-            name="user" 
-            value="${member}" 
-            checked
-            onchange="renderChart()"
-          >
-          <span style="background:${color}"></span>
-          ${member}
-        `;
+                    <input type="checkbox" name="user" value="${member}" checked onchange="renderChart()">
+                    <span style="background:${color}"></span>
+                    ${member}
+                `;
                 container.appendChild(filter);
             });
         }
 
         // 绘制图表
         function renderChart() {
-            const ctx = document.getElementById('weightChart').getContext('2d');
-            const selectedMembers = Array.from(
-                document.querySelectorAll('input[name="user"]:checked')
-            ).map(el => el.value);
-
-            // 准备图表数据集
-            const datasets = selectedMembers.map(member => {
-                const color = CONFIG.MEMBER_COLORS[member] || getRandomColor();
-                const dataPoints = [];
-
-                rawData.dates.forEach(date => {
-                    if (rawData.dataByDate[date][member] !== undefined) {
-                        dataPoints.push({
-                            x: rawData.dataByDate[date].rawDate,
-                            y: rawData.dataByDate[date][member]
-                        });
-                    }
-                });
-
-                return {
-                    label: member,
-                    data: dataPoints,
-                    borderColor: color,
-                    backgroundColor: color + '20', // 添加透明度
-                    borderWidth: 3,
-                    pointRadius: 5,
-                    pointBackgroundColor: color,
-                    tension: 0.2,
-                    fill: false
-                };
-            });
-
-            // 销毁旧图表
+            const ctx = document.getElementById('weightChart');
+            if (!ctx || !rawData.dates) return;
             if (chart) chart.destroy();
 
-            // 创建新图表
+            const selectedMembers = Array.from(document.querySelectorAll('input[name="user"]:checked')).map(el => el.value);
+            if (selectedMembers.length === 0) {
+                showStatus("请至少选择一个成员来显示图表", true);
+                return;
+            }
+
+            const datasets = selectedMembers.map(member => ({
+                label: member,
+                data: rawData.dates.map(date => ({
+                    x: rawData.dataByDate[date].rawDate,
+                    y: rawData.dataByDate[date][member]
+                })).filter(p => p.y !== undefined), // 过滤掉没有数据的点
+                borderColor: CONFIG.MEMBER_COLORS[member] || getRandomColor(),
+                backgroundColor: (CONFIG.MEMBER_COLORS[member] || getRandomColor()) + '30',
+                borderWidth: 2.5,
+                pointRadius: 4,
+                pointBackgroundColor: CONFIG.MEMBER_COLORS[member] || getRandomColor(),
+                tension: 0.3,
+                fill: false
+            }));
+
             chart = new Chart(ctx, {
                 type: 'line',
                 data: { datasets },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: {
-                        mode: 'index',
-                        intersect: false
-                    },
+                    responsive: true, maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
                     scales: {
-                        y: {
-                            title: {
-                                display: true,
-                                text: '体重 (kg)',
-                                font: { size: 14 }
-                            },
-                            grid: { color: 'rgba(0, 0, 0, 0.05)' }
-                        },
-                        x: {
-                            type: 'time',
-                            time: {
-                                unit: 'day',
-                                tooltipFormat: 'yyyy-MM-dd',
-                                displayFormats: { day: 'MMM d' }
-                            },
-                            title: {
-                                display: true,
-                                text: '日期',
-                                font: { size: 14 }
-                            },
-                            grid: { display: false }
-                        }
+                        y: { title: { display: true, text: '体重 (kg)', font: { size: 14 } }, grid: { color: 'rgba(0,0,0,0.05)' } },
+                        x: { type: 'time', time: { unit: 'day', tooltipFormat: 'yyyy-MM-dd', displayFormats: { day: 'MMM d' } }, title: { display: true, text: '日期', font: { size: 14 } }, grid: { display: false } }
                     },
                     plugins: {
-                        legend: {
-                            position: 'top',
-                            labels: {
-                                boxWidth: 15,
-                                padding: 15,
-                                font: { size: 13 }
-                            }
-                        },
+                        legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 8, padding: 20, font: { size: 13 } } },
                         tooltip: {
-                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                            titleColor: '#2d3748',
-                            bodyColor: '#4a5568',
-                            borderColor: '#e2e8f0',
-                            borderWidth: 1,
-                            padding: 12,
-                            boxPadding: 4,
-                            usePointStyle: true,
-                            callbacks: {
-                                label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y}kg`
-                            }
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)', titleColor: '#333', bodyColor: '#555',
+                            borderColor: '#ddd', borderWidth: 1, padding: 12, usePointStyle: true,
+                            callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)} kg` }
                         }
                     }
                 }
@@ -593,94 +606,103 @@
             const showDelta = document.getElementById('showDelta').checked;
             const headerRow = document.getElementById('tableHeader');
             const tableBody = document.getElementById('tableBody');
+            headerRow.innerHTML = ''; tableBody.innerHTML = ''; // 清空
 
-            // 清空表格
-            headerRow.innerHTML = '';
-            tableBody.innerHTML = '';
-
-            // 创建表头
             const dateHeader = document.createElement('th');
             dateHeader.textContent = '日期';
-            dateHeader.className = 'date-cell';
             headerRow.appendChild(dateHeader);
-
             rawData.members.forEach(member => {
                 const memberHeader = document.createElement('th');
                 memberHeader.textContent = member;
-                memberHeader.style.color = CONFIG.MEMBER_COLORS[member] || '#2d3748';
+                memberHeader.style.color = CONFIG.MEMBER_COLORS[member] || '#333';
                 headerRow.appendChild(memberHeader);
             });
 
-            // 添加数据行
             let prevDateData = null;
-            rawData.dates.forEach(date => {
+            // 从最近的日期开始渲染
+            [...rawData.dates].reverse().forEach(date => {
                 const row = document.createElement('tr');
                 const dateData = rawData.dataByDate[date];
+                const dayOfWeek = dateData.rawDate.getDay();
 
-                // 日期单元格
                 const dateCell = document.createElement('td');
                 dateCell.textContent = date;
                 dateCell.className = 'date-cell';
+                if (dayOfWeek === 0 || dayOfWeek === 6) {
+                    row.classList.add('weekend-highlight'); // 周末高亮
+                }
                 row.appendChild(dateCell);
 
-                // 成员体重单元格
                 rawData.members.forEach(member => {
                     const weightCell = document.createElement('td');
                     weightCell.className = 'weight-cell';
-
                     if (dateData[member] !== undefined) {
-                        weightCell.textContent = dateData[member].toFixed(1);
-
-                        // 显示变化量
-                        if (showDelta && prevDateData && prevDateData[member] !== undefined) {
-                            const delta = dateData[member] - prevDateData[member];
-                            const deltaSpan = document.createElement('span');
-                            deltaSpan.className = `delta ${delta > 0 ? 'positive' : 'negative'}`;
-                            deltaSpan.textContent = delta > 0 ? `+${delta.toFixed(1)}` : delta.toFixed(1);
-                            weightCell.appendChild(deltaSpan);
+                        weightCell.innerHTML = `<span>${dateData[member].toFixed(1)}</span>`;
+                        if (showDelta) {
+                            // 找到该成员的上一个有效数据点
+                            let prevWeight = null;
+                            for (let i = rawData.dates.indexOf(date) - 1; i >= 0; i--) {
+                                const prevDate = rawData.dates[i];
+                                if (rawData.dataByDate[prevDate][member] !== undefined) {
+                                    prevWeight = rawData.dataByDate[prevDate][member];
+                                    break;
+                                }
+                            }
+                            if (prevWeight !== null) {
+                                const delta = dateData[member] - prevWeight;
+                                if (Math.abs(delta) > 0.01) { // 只有在有变化时才显示
+                                    const deltaSpan = document.createElement('span');
+                                    deltaSpan.className = `delta ${delta > 0 ? 'negative' : 'positive'}`; // 体重增加是negative情绪
+                                    deltaSpan.textContent = delta > 0 ? `+${delta.toFixed(1)}` : delta.toFixed(1);
+                                    weightCell.appendChild(deltaSpan);
+                                }
+                            }
                         }
                     } else {
                         weightCell.textContent = '-';
                     }
-
                     row.appendChild(weightCell);
                 });
-
                 tableBody.appendChild(row);
                 prevDateData = dateData;
             });
         }
 
-        // 刷新数据
+        // 主刷新函数
         async function refreshData() {
+            toggleLoader(true);
+            document.getElementById('weightChart').style.opacity = '0.5';
+            showStatus("正在加载最新数据...", false);
+
             try {
-                document.getElementById('updateTime').textContent = getFormattedTime();
-
-                // 保存当前数据作为历史参考
-                prevData = rawData;
-
-                // 获取新数据
                 const jsonData = await fetchData();
-                if (!jsonData) return;
+                if (!jsonData) {
+                    toggleLoader(false);
+                    document.getElementById('weightChart').style.opacity = '1';
+                    return; // fetchData内部已处理错误显示
+                }
 
-                // 处理数据
+                // 仅在首次加载时渲染筛选器
+                const isFirstLoad = !rawData.members;
                 rawData = processData(jsonData);
 
-                // 首次加载时渲染筛选器
-                if (!document.getElementById('filterContainer').innerHTML) {
+                if (isFirstLoad) {
                     renderFilters();
                 }
 
-                // 渲染图表和表格
                 renderChart();
                 renderTable();
-
-                // 计算并显示统计数据
                 calculateStats();
 
-                console.log('数据刷新成功');
+                document.getElementById('updateTime').textContent = getFormattedTime();
+                showStatus("数据加载成功!", false);
+
             } catch (error) {
-                console.error('刷新数据时出错:', error);
+                console.error('[ERROR] 处理数据时出错:', error);
+                showStatus(`处理数据出错: ${error.message}`, true);
+            } finally {
+                toggleLoader(false);
+                document.getElementById('weightChart').style.opacity = '1';
             }
         }
 
@@ -688,7 +710,9 @@
         window.onload = () => {
             refreshData();
             // 设置定时刷新
-            setInterval(refreshData, CONFIG.REFRESH_INTERVAL);
+            if (CONFIG.REFRESH_INTERVAL > 0) {
+                setInterval(refreshData, CONFIG.REFRESH_INTERVAL);
+            }
         };
     </script>
 </body>
