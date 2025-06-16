@@ -644,11 +644,6 @@
                         datasets: [{
                             label: member,
                             data: weeklyData,
-                            color: {
-                                up: '#FF0000',      // 上涨（收盘价>开盘价）时的颜色，设置为更鲜艳的红色
-                                down: '#00FF00',    // 下跌（开盘价>收盘价）时的颜色，设置为您CSS中的成功色
-                                unchanged: '#999'   // 不变时的颜色
-                            }
                         }]
                     },
                     options: {
@@ -680,6 +675,15 @@
                             y: {
                                 grid: { color: 'rgba(0,0,0,0.05)' },
                                 title: { display: true, text: '体重 (kg)' }
+                            }
+                        },
+                        elements: {
+                            candlestick: {
+                                color: {
+                                    up: '#FF0000',      // Red for weight increase (close > open)
+                                    down: '#00FF00',    // Green for weight decrease (close < open)
+                                    unchanged: '#999999'
+                                }
                             }
                         }
                     }
