@@ -157,15 +157,10 @@
 
         #chartContainer {
             position: relative;
-            min-height: 400px;
+            height: 400px;
+            width: 100%;
         }
 
-        canvas {
-            width: 100% !important;
-            height: 100% !important;
-        }
-
-        /* [CHANGED] Styles for the candlestick chart grid layout */
         .candlestick-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -381,7 +376,7 @@
         const CONFIG = {
             SHEET_ID: "1MOELPmNQ0M9cFupYic6MTSKrBq8aehRdJ-sILfPoTOw", // 这是你的表格ID
             MEMBER_COLORS: {
-                'PD': '#23238E', 'AX': '#BC1717', 'YC': '#000000', 'GL': '#FFCE56',
+                'PD': '#5599FF', 'AX': '#BC1717', 'YC': '#000000', 'GL': '#FFCE56',
             },
             REFRESH_INTERVAL: 300000, // 5分钟自动刷新（毫秒）
             DEBUG_MODE: true
