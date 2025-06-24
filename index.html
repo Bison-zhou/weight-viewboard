@@ -562,7 +562,7 @@
                         tooltip: {
                             backgroundColor: 'rgba(255, 255, 255, 0.95)', titleColor: '#333', bodyColor: '#555',
                             borderColor: '#ddd', borderWidth: 1, padding: 12, usePointStyle: true,
-                            callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)} kg` }
+                            callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)} kg` }
                         }
                     }
                 }
@@ -726,7 +726,7 @@
                     const weightCell = document.createElement('td');
                     weightCell.className = 'weight-cell';
                     if (dateData[member] !== undefined) {
-                        weightCell.innerHTML = `<span>${dateData[member].toFixed(1)}</span>`;
+                        weightCell.innerHTML = `<span>${dateData[member].toFixed(2)}</span>`;
                         if (showDelta) {
                             let prevWeight = null;
                             for (let i = rawData.dates.indexOf(date) - 1; i >= 0; i--) {
@@ -741,7 +741,7 @@
                                 if (Math.abs(delta) > 0.01) {
                                     const deltaSpan = document.createElement('span');
                                     deltaSpan.className = `delta ${delta > 0 ? 'negative' : 'positive'}`;
-                                    deltaSpan.textContent = delta > 0 ? `+${delta.toFixed(1)}` : delta.toFixed(1);
+                                    deltaSpan.textContent = delta > 0 ? `+${delta.toFixed(2)}` : delta.toFixed(2);
                                     weightCell.appendChild(deltaSpan);
                                 }
                             }
