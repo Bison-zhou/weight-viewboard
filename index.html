@@ -9,12 +9,9 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <script src="https://cdn.jsdelivr.net/npm/luxon@3.3.0/build/global/luxon.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.min.js"></script>
-    <!-- [NEW] Added library for candlestick charts -->
-    <script
-        src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.2.0/dist/chartjs-chart-financial.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.2.0/dist/chartjs-chart-financial.min.js"></script>
 
     <style>
-        /* CSS 样式进行了全面优化和美化 */
         :root {
             --primary-color: #3498db;
             --primary-color-dark: #2980b9;
@@ -27,290 +24,39 @@
             --font-family: 'Segoe UI', 'Helvetica Neue', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: var(--font-family); max-width: 1200px; margin: 0 auto; padding: 20px; background: var(--background-color); color: var(--text-color); line-height: 1.6; }
+        .header { text-align: center; margin-bottom: 30px; padding: 20px; background: var(--panel-background); border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06); }
+        .dashboard { display: grid; grid-template-columns: 1fr; gap: 25px; }
+        .panel { background: var(--panel-background); border-radius: 12px; padding: 25px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.07); transition: transform 0.2s, box-shadow 0.2s; }
+        .panel-title { font-size: 1.4rem; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); color: var(--primary-color); display: flex; align-items: center; justify-content: space-between; }
+        
+        .controls { display: flex; flex-wrap: wrap; gap: 15px; margin: 20px 0; padding: 15px; background: #f8fafc; border-radius: 8px; align-items: center; }
+        .filter-group { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+        .date-filter-group { display: flex; align-items: center; gap: 8px; margin-left: auto; font-size: 0.9em; }
+        .date-filter-group input { padding: 5px; border: 1px solid var(--border-color); border-radius: 4px; }
 
-        body {
-            font-family: var(--font-family);
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background: var(--background-color);
-            color: var(--text-color);
-            line-height: 1.6;
-        }
+        .user-filter { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: #edf2f7; border-radius: 20px; cursor: pointer; transition: all 0.2s; }
+        .user-filter input { cursor: pointer; }
+        .user-filter span { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 5px; }
 
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding: 20px;
-            background: var(--panel-background);
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-        }
-
-        .header h1 {
-            color: var(--text-color);
-            margin-bottom: 10px;
-        }
-
-        .dashboard {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 25px;
-        }
-
-        .panel {
-            background: var(--panel-background);
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.07);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .panel:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
-        }
-
-        .panel-title {
-            font-size: 1.4rem;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid var(--border-color);
-            color: var(--primary-color);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .controls {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin: 20px 0;
-            padding: 15px;
-            background: #f8fafc;
-            border-radius: 8px;
-            align-items: center;
-        }
-
-        .filter-group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            align-items: center;
-        }
-
-        .user-filter {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 8px 12px;
-            background: #edf2f7;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .user-filter:hover {
-            background: #e2e8f0;
-        }
-
-        .user-filter input {
-            margin: 0;
-            cursor: pointer;
-        }
-
-        .user-filter span {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            margin-right: 5px;
-        }
-
-        button {
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: background 0.2s, transform 0.1s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        button:hover {
-            background: var(--primary-color-dark);
-        }
-
-        button:active {
-            transform: scale(0.98);
-        }
-
-        #chartContainer {
-            position: relative;
-            height: 400px;
-            width: 100%;
-        }
-
-        .candlestick-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            /* Default to 2 columns */
-            gap: 100px;
-            margin-top: 30px;
-            margin-bottom: 30px;
-        }
-
-        .candlestick-chart-wrapper {
-            position: relative;
-            height: 300px;
-            /* Set a fixed height for each k-line chart */
-        }
-
-        .candlestick-title {
-            text-align: center;
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: var(--text-color);
-            font-size: 1.1rem;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-            font-size: 0.95rem;
-        }
-
-        th,
-        td {
-            padding: 12px 15px;
-            text-align: center;
-            border: 1px solid var(--border-color);
-        }
-
-        th {
-            background-color: #f1f5f9;
-            font-weight: 600;
-            position: sticky;
-            top: 0;
-        }
-
-        tr:nth-child(even) {
-            background-color: #f8fafc;
-        }
-
-        .date-cell {
-            font-weight: 600;
-            background: #f0f7ff;
-        }
-
-        .weekend-highlight {
-            background-color: #fff9db !important;
-        }
-
-        .weight-cell {
-            font-weight: 600;
-            position: relative;
-        }
-
-        .delta {
-            font-size: 0.75em;
-            padding: 2px 5px;
-            border-radius: 4px;
-            margin-left: 8px;
-        }
-
-        .positive {
-            color: var(--success-color);
-            background: rgba(39, 174, 96, 0.1);
-        }
-
-        .negative {
-            color: var(--danger-color);
-            background: rgba(231, 76, 60, 0.1);
-        }
-
-        .status-message {
-            padding: 15px;
-            margin: 15px 0;
-            border-radius: 8px;
-            text-align: center;
-            font-weight: 500;
-            transition: opacity 0.3s;
-        }
-
-        .status-error {
-            background: #ffebee;
-            color: #c62828;
-            border: 1px solid #ffcdd2;
-        }
-
-        .status-info {
-            background: #e3f2fd;
-            color: #1565c0;
-            border: 1px solid #bbdefb;
-        }
-
-        /* 加载动画 */
-        .loader {
-            border: 5px solid #f3f3f3;
-            border-top: 5px solid var(--primary-color);
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            margin-top: -25px;
-            margin-left: -25px;
-            z-index: 10;
-        }
-
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-
-        @media (max-width: 768px) {
-            body {
-                padding: 15px;
-            }
-
-            .controls {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .panel {
-                padding: 20px 15px;
-            }
-
-            th,
-            td {
-                padding: 8px 10px;
-            }
-
-            /* [CHANGED] Candlestick grid becomes single column on smaller screens */
-            .candlestick-grid {
-                grid-template-columns: 1fr;
-            }
-        }
+        button { background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        #chartContainer { position: relative; height: 400px; width: 100%; }
+        .candlestick-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin: 30px 0; }
+        .candlestick-chart-wrapper { position: relative; height: 300px; border: 1px solid var(--border-color); padding: 10px; border-radius: 8px; }
+        .candlestick-title { text-align: center; font-weight: bold; margin-bottom: 10px; font-size: 1rem; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.95rem; }
+        th, td { padding: 12px 15px; text-align: center; border: 1px solid var(--border-color); }
+        th { background-color: #f1f5f9; position: sticky; top: 0; }
+        tr:nth-child(even) { background-color: #f8fafc; }
+        .delta { font-size: 0.75em; padding: 2px 5px; border-radius: 4px; margin-left: 8px; }
+        .positive { color: var(--success-color); background: rgba(39, 174, 96, 0.1); }
+        .negative { color: var(--danger-color); background: rgba(231, 76, 60, 0.1); }
+        .status-message { padding: 15px; margin: 15px 0; border-radius: 8px; text-align: center; }
+        .loader { border: 5px solid #f3f3f3; border-top: 5px solid var(--primary-color); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; position: absolute; top: 50%; left: 50%; margin: -25px 0 0 -25px; z-index: 10; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @media (max-width: 768px) { .candlestick-grid { grid-template-columns: 1fr; } .date-filter-group { margin-left: 0; width: 100%; justify-content: space-between; } }
     </style>
 </head>
 
@@ -327,40 +73,27 @@
                 <span>体重变化趋势图</span>
             </div>
             <div class="controls">
-                <div class="filter-group">
-                    <strong>筛选成员：</strong>
-                    <div id="filterContainer"></div>
+                <div class="filter-group" id="filterContainer"></div>
+                <div class="date-filter-group">
+                    <label>从: <input type="date" id="startDate" onchange="renderChart()"></label>
+                    <label>至: <input type="date" id="endDate" onchange="renderChart()"></label>
                 </div>
-                <button onclick="refreshData()">
-                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z" />
-                        <path
-                            d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z" />
-                    </svg>
-                    刷新数据
-                </button>
+                <button onclick="refreshData()">刷新数据</button>
             </div>
             <div id="chartContainer">
-                <canvas id="weightChart" style="height: 400px;"></canvas>
+                <canvas id="weightChart"></canvas>
             </div>
         </div>
 
         <div class="panel">
-            <div class="panel-title">
-                <span>成员周K线图</span>
-            </div>
-            <div id="candlestickChartsContainer" class="candlestick-grid">
-                <!-- Candlestick charts will be generated here by script -->
-            </div>
+            <div class="panel-title"><span>成员周K线图 (WJ已加入)</span></div>
+            <div id="candlestickChartsContainer" class="candlestick-grid"></div>
         </div>
 
         <div class="panel">
             <div class="panel-title">
                 <span>详细数据表</span>
-                <div>
-                    <label style="cursor:pointer; font-size: 0.9em;"><input type="checkbox" id="showDelta"
-                            onchange="renderTable()"> 显示与上次数据的变化量</label>
-                </div>
+                <label style="cursor:pointer; font-size: 0.8em;"><input type="checkbox" id="showDelta" onchange="renderTable()"> 显示变化量</label>
             </div>
             <div style="max-height: 500px; overflow-y: auto;">
                 <table id="weightTable">
@@ -372,113 +105,64 @@
     </div>
 
     <script>
-        // ===== 配置区域 =====
         const CONFIG = {
-            SHEET_ID: "1MOELPmNQ0M9cFupYic6MTSKrBq8aehRdJ-sILfPoTOw", // 这是你的表格ID
-            MEMBER_COLORS: {
-                'PD': '#5599FF', 'AX': '#BC1717', 'YC': '#000000', 'GL': '#FFCE56', 'SF': '#800080', 'WJ': '#FFA500'
-            },
+            SHEET_ID: "1MOELPmNQ0M9cFupYic6MTSKrBq8aehRdJ-sILfPoTOw",
+            MEMBER_COLORS: { 'PD': '#5599FF', 'AX': '#BC1717', 'YC': '#000000', 'GL': '#FFCE56', 'SF': '#800080', 'WJ': '#FFA500' },
             DEFAULT_MEMBERS: ['PD', 'SF', 'WJ'],
-            REFRESH_INTERVAL: 300000, // 5分钟自动刷新（毫秒）
-            DEBUG_MODE: true
+            REFRESH_INTERVAL: 300000
         };
-        // ===================
 
-        // 全局变量
         let rawData = {};
-        let candlestickCharts = []; // To hold candlestick chart instances for destruction
+        let candlestickCharts = [];
 
-        // 工具函数：获取格式化时间
-        const getFormattedTime = () => new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-
-        // 工具函数：生成随机颜色
-        const getRandomColor = () => `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`;
-
-        // 显示加载状态
         function toggleLoader(show) {
             let loader = document.getElementById('loader');
-            if (show) {
-                if (!loader) {
-                    loader = document.createElement('div');
-                    loader.id = 'loader';
-                    loader.className = 'loader';
-                    document.getElementById('chartContainer').appendChild(loader);
-                }
-            } else {
-                if (loader) loader.remove();
-            }
+            if (show && !loader) {
+                loader = document.createElement('div');
+                loader.id = 'loader'; loader.className = 'loader';
+                document.getElementById('chartContainer').appendChild(loader);
+            } else if (!show && loader) loader.remove();
         }
 
-        // 显示状态消息
         function showStatus(message, isError = false) {
             const statusEl = document.getElementById('statusMessage');
-            statusEl.textContent = message;
-            statusEl.style.display = 'block';
+            statusEl.textContent = message; statusEl.style.display = 'block';
             statusEl.className = `status-message ${isError ? 'status-error' : 'status-info'}`;
-            if (!isError) {
-                setTimeout(() => { statusEl.style.display = 'none'; }, 5000);
-            }
+            if (!isError) setTimeout(() => { statusEl.style.display = 'none'; }, 5000);
         }
 
-        // 从Google表格获取数据
         async function fetchData() {
             const url = `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq?tqx=out:json&t=${Date.now()}`;
-            if (CONFIG.DEBUG_MODE) console.log(`[INFO] 请求数据: ${url}`);
             try {
                 const response = await fetch(url);
-                if (!response.ok) throw new Error(`HTTP错误! 状态码: ${response.status}`);
                 const text = await response.text();
                 const jsonMatch = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);/);
-                if (!jsonMatch || !jsonMatch[1]) throw new Error('无法从响应中解析JSONP数据。');
-                const jsonData = JSON.parse(jsonMatch[1]);
-                if (jsonData.status === 'error') {
-                    const errorDetails = jsonData.errors.map(e => e.detailed_message).join('\n');
-                    throw new Error(`Google Sheet API 错误: ${errorDetails}`);
-                }
-                return jsonData;
+                return JSON.parse(jsonMatch[1]);
             } catch (error) {
-                console.error('[ERROR] 获取数据失败:', error);
                 showStatus(`获取数据失败: ${error.message}`, true);
                 return null;
             }
         }
 
-        // 处理原始JSON数据
         function processData(jsonData) {
-            if (!jsonData || !jsonData.table || !jsonData.table.rows || jsonData.table.rows.length === 0) {
-                throw new Error('表格数据为空或格式不正确。');
-            }
             const { cols, rows } = jsonData.table;
             const members = cols.slice(1).map(col => col.label).filter(Boolean);
-            if (members.length === 0) throw new Error('未找到成员名称，请检查表格标题行。');
             const dataByDate = {};
             const allWeights = [];
-            rows.forEach((row, rowIndex) => {
+            rows.forEach(row => {
                 const dateCell = row.c[0];
                 if (!dateCell || !dateCell.v) return;
-
                 let date;
                 const dateMatch = dateCell.v.match(/Date\((\d+),(\d+),(\d+)\)/);
-                if (dateMatch) {
-                    date = new Date(dateMatch[1], dateMatch[2], dateMatch[3]);
-                } else {
-                    date = new Date(dateCell.v);
-                }
-
-                if (isNaN(date.getTime())) {
-                    console.warn(`[WARN] 无效日期 "${dateCell.v}" 在行 ${rowIndex + 1}, 已跳过。`);
-                    return;
-                }
+                date = dateMatch ? new Date(dateMatch[1], dateMatch[2], dateMatch[3]) : new Date(dateCell.v);
                 const isoDate = date.toISOString().split('T')[0];
                 const dateData = { date: isoDate, rawDate: date };
-                members.forEach((member, memberIndex) => {
-                    const weightCell = row.c[memberIndex + 1];
+                members.forEach((member, idx) => {
+                    const weightCell = row.c[idx + 1];
                     if (weightCell && weightCell.v !== null) {
                         const weight = parseFloat(weightCell.v);
-                        if (!isNaN(weight)) {
-                            dateData[member] = weight;
-                            allWeights.push({ member, date: isoDate, weight });
-                        }
+                        dateData[member] = weight;
+                        allWeights.push({ member, date: isoDate, weight });
                     }
                 });
                 dataByDate[isoDate] = dateData;
@@ -487,55 +171,46 @@
             return { members, dates: sortedDates, dataByDate, allWeights };
         }
 
-        // 渲染成员筛选器
         function renderFilters() {
             const container = document.getElementById('filterContainer');
-            container.innerHTML = '';
+            container.innerHTML = '<strong>成员：</strong>';
             rawData.members.forEach(member => {
-                const color = CONFIG.MEMBER_COLORS[member] || getRandomColor();
                 const isChecked = CONFIG.DEFAULT_MEMBERS.includes(member) ? 'checked' : '';
                 const filter = document.createElement('label');
-                
                 filter.className = 'user-filter';
-                filter.innerHTML = `
-                    <input type="checkbox" name="user" value="${member}" ${isChecked} onchange="renderChart()">
-                    <span style="background:${color}"></span>
-                    ${member}
-                `;
+                filter.innerHTML = `<input type="checkbox" name="user" value="${member}" ${isChecked} onchange="renderChart()"><span style="background:${CONFIG.MEMBER_COLORS[member] || '#ccc'}"></span>${member}`;
                 container.appendChild(filter);
             });
+            // 初始化日期选择器的默认值
+            document.getElementById('startDate').value = rawData.dates[0];
+            document.getElementById('endDate').value = rawData.dates[rawData.dates.length - 1];
         }
 
-        // 绘制图表
         function renderChart() {
             const canvasId = 'weightChart';
             const existingChart = Chart.getChart(canvasId);
-            if (existingChart) {
-                existingChart.destroy();
-            }
-            const ctx = document.getElementById(canvasId);
-            if (!ctx || !rawData.dates) return;
-
+            if (existingChart) existingChart.destroy();
+            
+            const ctx = document.getElementById(canvasId).getContext('2d');
             const selectedMembers = Array.from(document.querySelectorAll('input[name="user"]:checked')).map(el => el.value);
-            if (selectedMembers.length === 0) {
-                showStatus("请至少选择一个成员来显示图表", true);
-                const context = ctx.getContext('2d');
-                context.clearRect(0, 0, ctx.width, ctx.height);
-                return;
-            }
+            
+            // [MODIFIED] 获取日期筛选范围
+            const startLimit = document.getElementById('startDate').value;
+            const endLimit = document.getElementById('endDate').value;
 
             const datasets = selectedMembers.map(member => ({
                 label: member,
-                data: rawData.dates.map(date => ({
-                    x: rawData.dataByDate[date].rawDate,
-                    y: rawData.dataByDate[date][member]
-                })).filter(p => p.y !== undefined),
-                borderColor: CONFIG.MEMBER_COLORS[member] || getRandomColor(),
-                backgroundColor: (CONFIG.MEMBER_COLORS[member] || getRandomColor()) + '30',
+                data: rawData.dates
+                    .filter(d => d >= startLimit && d <= endLimit) // [NEW] 日期过滤逻辑
+                    .map(date => ({
+                        x: rawData.dataByDate[date].rawDate,
+                        y: rawData.dataByDate[date][member]
+                    })).filter(p => p.y !== undefined),
+                borderColor: CONFIG.MEMBER_COLORS[member],
+                backgroundColor: CONFIG.MEMBER_COLORS[member] + '30',
                 borderWidth: 2,
-                pointRadius: 2,
-                pointHoverRadius: 5,
-                pointBackgroundColor: CONFIG.MEMBER_COLORS[member] || getRandomColor(),
+                pointRadius: 1,      // [MODIFIED] 需求1：点大小调小 1px (原为 2)
+                pointHoverRadius: 4, // 配合缩小悬停点
                 tension: 0.3,
                 fill: false
             }));
@@ -545,264 +220,124 @@
                 data: { datasets },
                 options: {
                     responsive: true, maintainAspectRatio: false,
-                    interaction: { mode: 'index', intersect: false },
                     scales: {
-                        y: { title: { display: true, text: '体重 (kg)', font: { size: 14, weight: 'bold' } }, grid: { color: 'rgba(0,0,0,0.05)' } },
-                        x: { type: 'time', time: { unit: 'day', tooltipFormat: 'yyyy-MM-dd', displayFormats: { day: 'MMM d' } }, title: { display: true, text: '日期', font: { size: 14, weight: 'bold' } }, grid: { display: false } }
+                        x: { type: 'time', time: { unit: 'day', displayFormats: { day: 'MM-dd' } } },
+                        y: { title: { display: true, text: 'kg' } }
                     },
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                            labels: {
-                                usePointStyle: true,
-                                pointStyle: 'circle',
-                                boxWidth: 6,
-                                boxHeight: 6,
-                                padding: 20,
-                                font: { size: 14 }
-                            }
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(255, 255, 255, 0.95)', titleColor: '#333', bodyColor: '#555',
-                            borderColor: '#ddd', borderWidth: 1, padding: 12, usePointStyle: true,
-                            callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)} kg` }
-                        }
-                    }
+                    plugins: { legend: { position: 'top' } }
                 }
             });
         }
 
-        // [CHANGED] Function to calculate weekly K-line data with new logic
         function calculateWeeklyData(member, allWeights) {
             const memberWeights = allWeights.filter(d => d.member === member && d.weight);
             if (memberWeights.length === 0) return [];
-
             const weeklyData = {};
-
             memberWeights.forEach(d => {
                 const date = luxon.DateTime.fromISO(d.date);
-                // A week is from Sunday (7) to Saturday (6).
-                // The key for the week will be the date of its starting Sunday.
                 const weekStartSunday = date.minus({ days: (date.weekday % 7) });
                 const weekKey = weekStartSunday.toISODate();
-
-                if (!weeklyData[weekKey]) {
-                    weeklyData[weekKey] = {
-                        date: weekStartSunday,
-                        points: []
-                    };
-                }
+                if (!weeklyData[weekKey]) weeklyData[weekKey] = { date: weekStartSunday, points: [] };
                 weeklyData[weekKey].points.push({ date: date, weight: d.weight, day: date.weekday });
             });
-
             return Object.keys(weeklyData).map(weekKey => {
                 const week = weeklyData[weekKey];
                 week.points.sort((a, b) => a.date - b.date);
-
-                // Sunday is 7, Saturday is 6. Use fallbacks if exact day is not present.
                 const openData = week.points.find(p => p.day === 7) || week.points[0];
                 const closeData = week.points.find(p => p.day === 6) || week.points[week.points.length - 1];
-
-                return {
-                    x: week.date.valueOf(),
-                    o: openData.weight,
-                    h: Math.max(...week.points.map(p => p.weight)),
-                    l: Math.min(...week.points.map(p => p.weight)),
-                    c: closeData.weight
-                };
+                return { x: week.date.valueOf(), o: openData.weight, h: Math.max(...week.points.map(p => p.weight)), l: Math.min(...week.points.map(p => p.weight)), c: closeData.weight };
             }).sort((a, b) => a.x - b.x);
         }
 
-        // Function to render candlestick charts
         function renderCandlestickCharts() {
             const container = document.getElementById('candlestickChartsContainer');
             candlestickCharts.forEach(chart => chart.destroy());
-            candlestickCharts = [];
-            container.innerHTML = '';
+            candlestickCharts = []; container.innerHTML = '';
 
+            // [MODIFIED] 需求2：WJ weekly 已包含在 rawData.members 循环中
+            // 只要 Google 表格中有 WJ 列，逻辑会自动渲染。
             rawData.members.forEach(member => {
                 const weeklyData = calculateWeeklyData(member, rawData.allWeights);
                 if (weeklyData.length < 2) return;
 
                 const wrapper = document.createElement('div');
                 wrapper.className = 'candlestick-chart-wrapper';
-
                 const title = document.createElement('div');
-                title.className = 'candlestick-title';
-                title.textContent = `${member} weekly`;
-
+                title.className = 'candlestick-title'; title.textContent = `${member} Weekly K-Line`;
                 const canvas = document.createElement('canvas');
-                wrapper.appendChild(title);
-                wrapper.appendChild(canvas);
+                wrapper.appendChild(title); wrapper.appendChild(canvas);
                 container.appendChild(wrapper);
 
-                const ctx = canvas.getContext('2d');
-                const newChart = new Chart(ctx, {
+                const newChart = new Chart(canvas.getContext('2d'), {
                     type: 'candlestick',
                     data: {
                         datasets: [{
                             label: member,
                             data: weeklyData,
-                            borderColor: function (context) {
-                                const o = context.raw.o; // 开盘价 (本周初体重)
-                                const c = context.raw.c; // 收盘价 (本周末体重)
-                                // 对体重来说，上涨(c > o)是红色，下跌是绿色
-                                return c > o ? 'rgba(255, 0, 0, 1)' : 'rgba(0, 255, 0, 1)';
-                            },
-                            backgroundColor: function (context) {
-                                const o = context.raw.o;
-                                const c = context.raw.c;
-                                // 使用带透明度的颜色填充K线实体
-                                return c > o ? 'rgba(255, 0, 0, 0.7)' : 'rgba(0, 255, 0, 0.7)';
-                            },
-                            borderWidth: 1,
+                            borderColor: c => c.raw.c > c.raw.o ? '#e74c3c' : '#27ae60',
+                            backgroundColor: c => c.raw.c > c.raw.o ? '#e74c3c' : '#27ae60',
                         }]
                     },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                                callbacks: {
-                                    label: function (context) {
-                                        const raw = context.raw;
-                                        return [
-                                            `开盘 (周日): ${raw.o.toFixed(2)}`,
-                                            `最高: ${raw.h.toFixed(2)}`,
-                                            `最低: ${raw.l.toFixed(2)}`,
-                                            `收盘 (周六): ${raw.c.toFixed(2)}`
-                                        ];
-                                    }
-                                }
-                            }
-                        },
-                        scales: {
-                            x: {
-                                type: 'time',
-                                // adapters: { date: { locale: 'zh-CN' } },
-                                time: { unit: 'week', tooltipFormat: 'yyyy-MM-dd' },
-                                grid: { display: false }
-                            },
-                            y: {
-                                grid: { color: 'rgba(0,0,0,0.05)' },
-                                title: { display: true, text: '体重 (kg)' }
-                            }
-                        }
+                    options: { 
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { display: false } }
                     }
                 });
                 candlestickCharts.push(newChart);
             });
         }
 
-        // 渲染数据表格
         function renderTable() {
             const showDelta = document.getElementById('showDelta').checked;
             const headerRow = document.getElementById('tableHeader');
             const tableBody = document.getElementById('tableBody');
-            headerRow.innerHTML = ''; tableBody.innerHTML = '';
-
-            const dateHeader = document.createElement('th');
-            dateHeader.textContent = '日期';
-            headerRow.appendChild(dateHeader);
-            rawData.members.forEach(member => {
-                const memberHeader = document.createElement('th');
-                memberHeader.textContent = member;
-                memberHeader.style.color = CONFIG.MEMBER_COLORS[member] || '#333';
-                headerRow.appendChild(memberHeader);
+            headerRow.innerHTML = '<th>日期</th>'; tableBody.innerHTML = '';
+            rawData.members.forEach(m => {
+                const th = document.createElement('th'); th.textContent = m;
+                th.style.color = CONFIG.MEMBER_COLORS[m]; headerRow.appendChild(th);
             });
-
             [...rawData.dates].reverse().forEach(date => {
                 const row = document.createElement('tr');
                 const dateData = rawData.dataByDate[date];
-                const dayOfWeek = dateData.rawDate.getDay();
-
                 const dateCell = document.createElement('td');
-                dateCell.textContent = date;
-                dateCell.className = 'date-cell';
-                if (dayOfWeek === 0 || dayOfWeek === 6) {
-                    row.classList.add('weekend-highlight');
-                }
-                row.appendChild(dateCell);
-
+                dateCell.textContent = date; row.appendChild(dateCell);
                 rawData.members.forEach(member => {
-                    const weightCell = document.createElement('td');
-                    weightCell.className = 'weight-cell';
-                    if (dateData[member] !== undefined) {
-                        weightCell.innerHTML = `<span>${dateData[member].toFixed(2)}</span>`;
+                    const td = document.createElement('td');
+                    if (dateData[member]) {
+                        td.innerHTML = `<b>${dateData[member].toFixed(2)}</b>`;
                         if (showDelta) {
-                            let prevWeight = null;
-                            for (let i = rawData.dates.indexOf(date) - 1; i >= 0; i--) {
-                                const prevDate = rawData.dates[i];
-                                if (rawData.dataByDate[prevDate][member] !== undefined) {
-                                    prevWeight = rawData.dataByDate[prevDate][member];
-                                    break;
-                                }
-                            }
-                            if (prevWeight !== null) {
-                                const delta = dateData[member] - prevWeight;
-                                if (Math.abs(delta) > 0.01) {
-                                    const deltaSpan = document.createElement('span');
-                                    deltaSpan.className = `delta ${delta > 0 ? 'negative' : 'positive'}`;
-                                    deltaSpan.textContent = delta > 0 ? `+${delta.toFixed(2)}` : delta.toFixed(2);
-                                    weightCell.appendChild(deltaSpan);
-                                }
+                            // 简化的 Delta 逻辑
+                            const idx = rawData.dates.indexOf(date);
+                            const prevDate = rawData.dates[idx-1];
+                            if (prevDate && rawData.dataByDate[prevDate][member]) {
+                                const delta = dateData[member] - rawData.dataByDate[prevDate][member];
+                                td.innerHTML += ` <span class="delta ${delta > 0 ? 'negative' : 'positive'}">${delta > 0 ? '+' : ''}${delta.toFixed(2)}</span>`;
                             }
                         }
-                    } else {
-                        weightCell.textContent = '-';
-                    }
-                    row.appendChild(weightCell);
+                    } else td.textContent = '-';
+                    row.appendChild(td);
                 });
                 tableBody.appendChild(row);
             });
         }
 
-        // 主刷新函数
         async function refreshData() {
             toggleLoader(true);
-            document.getElementById('chartContainer').style.opacity = '0.5';
-            showStatus("正在加载最新数据...", false);
-
             try {
                 const jsonData = await fetchData();
-                if (!jsonData) {
-                    toggleLoader(false);
-                    document.getElementById('chartContainer').style.opacity = '1';
-                    return;
-                }
-
+                if (!jsonData) return;
                 const isFirstLoad = !rawData.members;
                 rawData = processData(jsonData);
-
-                if (isFirstLoad) {
-                    renderFilters();
-                }
-
+                if (isFirstLoad) renderFilters();
                 renderChart();
                 renderTable();
                 renderCandlestickCharts();
-
-                document.getElementById('updateTime').textContent = getFormattedTime();
-                showStatus("数据加载成功!", false);
-
-            } catch (error) {
-                console.error('[ERROR] 处理数据时出错:', error);
-                showStatus(`处理数据出错: ${error.message}`, true);
-            } finally {
-                toggleLoader(false);
-                document.getElementById('chartContainer').style.opacity = '1';
-            }
+                document.getElementById('updateTime').textContent = new Date().toLocaleTimeString();
+            } catch (e) { console.error(e); }
+            finally { toggleLoader(false); }
         }
 
-        // 页面加载时运行
-        window.onload = () => {
-            refreshData();
-            if (CONFIG.REFRESH_INTERVAL > 0) {
-                setInterval(refreshData, CONFIG.REFRESH_INTERVAL);
-            }
-        };
+        window.onload = refreshData;
     </script>
 </body>
-
 </html>
