@@ -45,12 +45,14 @@
         .candlestick-chart-wrapper { position: relative; height: 300px; border: 1px solid var(--border-color); padding: 10px; border-radius: 8px; }
         .candlestick-title { text-align: center; font-weight: bold; margin-bottom: 10px; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { padding: 12px 15px; text-align: center; border: 1px solid var(--border-color); }
-        .delta { font-size: 0.75em; padding: 2px 5px; border-radius: 4px; margin-left: 8px; }
+        /* 优化后的表格样式 */
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        th, td { padding: 12px 8px; text-align: center; border: 1px solid var(--border-color); word-wrap: break-word; }
+        th { background-color: #f1f5f9; font-weight: bold; }
+        .delta { font-size: 0.75em; padding: 2px 4px; border-radius: 4px; display: inline-block; margin-top: 2px; }
         .positive { color: var(--success-color); background: rgba(39, 174, 96, 0.1); }
         .negative { color: var(--danger-color); background: rgba(231, 76, 60, 0.1); }
-        .loader { border: 5px solid #f3f3f3; border-top: 5px solid var(--primary-color); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; position: absolute; top: 50%; left: 50%; margin: -25px 0 0 -25px; }
+        
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         @media (max-width: 768px) { .candlestick-grid { grid-template-columns: 1fr; } }
     </style>
@@ -60,7 +62,6 @@
     <div class="header">
         <h1>📉 Body Weight</h1>
         <p>数据更新时间: <span id="updateTime">--</span></p>
-        <div id="statusMessage" class="status-message" style="display:none;"></div>
     </div>
 
     <div class="dashboard">
@@ -89,9 +90,9 @@
                 <span>详细数据表</span>
                 <label style="cursor:pointer; font-size: 0.8em;"><input type="checkbox" id="showDelta" onchange="renderTable()"> 显示变化量</label>
             </div>
-            <div style="max-height: 500px; overflow-y: auto;">
+            <div style="max-height: 500px; overflow-y: auto; border: 1px solid var(--border-color);">
                 <table id="weightTable">
-                    <thead id="tableHeader"></thead>
+                    <thead><tr id="tableHeader"></tr></thead>
                     <tbody id="tableBody"></tbody>
                 </table>
             </div>
@@ -101,7 +102,7 @@
     <script>
         const CONFIG = {
             SHEET_ID: "1MOELPmNQ0M9cFupYic6MTSKrBq8aehRdJ-sILfPoTOw",
-            MEMBER_COLORS: { 'PD': '#5599FF', 'AX': '#BC1717', 'YC': '#000000', 'GL': '#FFCE56', 'SF': '#800080', 'WJ': '#FFA500' },
+            MEMBER_COLORS: { 'PD': '#5599FF', 'SF': '#BC1717', 'WJ': '#FFA500', 'AX': '#800080', 'YC': '#000000', 'GL': '#FFCE56' },
             DEFAULT_MEMBERS: ['PD', 'SF', 'WJ']
         };
 
@@ -155,8 +156,13 @@
                 filter.innerHTML = `<input type="checkbox" name="user" value="${member}" ${isChecked} onchange="renderChart()"><span style="background:${CONFIG.MEMBER_COLORS[member] || '#ccc'}"></span>${member}`;
                 container.appendChild(filter);
             });
-            document.getElementById('startDate').value = rawData.dates[0];
-            document.getElementById('endDate').value = rawData.dates[rawData.dates.length - 1];
+            
+            // 日期初始值设为有数据的范围
+            const validDates = rawData.dates.filter(d => {
+                return rawData.members.some(m => rawData.dataByDate[d][m] !== undefined);
+            });
+            document.getElementById('startDate').value = validDates[0];
+            document.getElementById('endDate').value = validDates[validDates.length - 1];
         }
 
         function renderChart() {
@@ -180,7 +186,7 @@
                 borderColor: CONFIG.MEMBER_COLORS[member],
                 backgroundColor: CONFIG.MEMBER_COLORS[member] + '30',
                 borderWidth: 2,
-                pointRadius: 1,      // [MODIFIED] 点大小 1px
+                pointRadius: 1,
                 pointHoverRadius: 4,
                 tension: 0.3,
                 fill: false
@@ -195,20 +201,22 @@
                         x: { 
                             type: 'time', 
                             time: { unit: 'day', displayFormats: { day: 'MM-dd' } },
-                            title: { display: true, text: '日期 date', font: { weight: 'bold', size: 14 } }, // [MODIFIED] X轴加粗 Label
-                            ticks: { font: { weight: 'bold' } } // [MODIFIED] X轴刻度加粗
+                            title: { display: true, text: '日期 date', font: { weight: 'bold' } },
+                            ticks: { font: { weight: 'bold' } }
                         },
                         y: { 
-                            title: { display: true, text: '体重 kg', font: { weight: 'bold', size: 14 } }, // [MODIFIED] Y轴加粗 Label
-                            ticks: { font: { weight: 'bold' } } // [MODIFIED] Y轴刻度加粗
+                            title: { display: true, text: '体重 kg', font: { weight: 'bold' } },
+                            ticks: { font: { weight: 'bold' } }
                         }
                     },
                     plugins: { 
                         legend: { 
                             position: 'top',
                             labels: { 
-                                usePointStyle: true, // [MODIFIED] 使用点样式
-                                pointStyle: 'circle' // [MODIFIED] 换成圆点
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                                boxWidth: 8,  // [MODIFIED] 调小 Legend 圆点宽度
+                                boxHeight: 8  // [MODIFIED] 调小 Legend 圆点高度
                             }
                         } 
                     }
@@ -243,18 +251,15 @@
 
             rawData.members.forEach(member => {
                 const weeklyData = calculateWeeklyData(member, rawData.allWeights);
-                // [MODIFIED] 只要有数据就渲染，确保 WJ 能够出现
                 if (weeklyData.length === 0) return;
-
                 const wrapper = document.createElement('div');
                 wrapper.className = 'candlestick-chart-wrapper';
                 const title = document.createElement('div');
                 title.className = 'candlestick-title'; 
-                title.textContent = `${member} weekly`; // [MODIFIED] 去掉 K-Line
+                title.textContent = `${member} weekly`;
                 const canvas = document.createElement('canvas');
                 wrapper.appendChild(title); wrapper.appendChild(canvas);
                 container.appendChild(wrapper);
-
                 const newChart = new Chart(canvas.getContext('2d'), {
                     type: 'candlestick',
                     data: {
@@ -265,10 +270,7 @@
                             backgroundColor: c => c.raw.c > c.raw.o ? '#e74c3c' : '#27ae60',
                         }]
                     },
-                    options: { 
-                        responsive: true, maintainAspectRatio: false,
-                        plugins: { legend: { display: false } }
-                    }
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
                 });
                 candlestickCharts.push(newChart);
             });
@@ -278,29 +280,399 @@
             const showDelta = document.getElementById('showDelta').checked;
             const headerRow = document.getElementById('tableHeader');
             const tableBody = document.getElementById('tableBody');
-            headerRow.innerHTML = '<th>日期</th>'; tableBody.innerHTML = '';
+            
+            // [MODIFIED] 重新设计表头，确保对齐
+            headerRow.innerHTML = '<th style="width: 120px;">日期</th>';
             rawData.members.forEach(m => {
-                const th = document.createElement('th'); th.textContent = m;
-                th.style.color = CONFIG.MEMBER_COLORS[m]; headerRow.appendChild(th);
+                const th = document.createElement('th');
+                th.textContent = m;
+                th.style.color = CONFIG.MEMBER_COLORS[m];
+                headerRow.appendChild(th);
             });
+
+            tableBody.innerHTML = '';
             [...rawData.dates].reverse().forEach(date => {
-                const row = document.createElement('tr');
                 const dateData = rawData.dataByDate[date];
+                
+                // [NEW] 需求3：自动不显示全空行逻辑
+                const hasAnyData = rawData.members.some(member => dateData[member] !== undefined);
+                if (!hasAnyData) return; // 跳过全空行
+
+                const row = document.createElement('tr');
                 const dateCell = document.createElement('td');
-                dateCell.textContent = date; row.appendChild(dateCell);
+                dateCell.textContent = date;
+                row.appendChild(dateCell);
+
                 rawData.members.forEach(member => {
                     const td = document.createElement('td');
-                    if (dateData[member]) {
+                    if (dateData[member] !== undefined) {
                         td.innerHTML = `<b>${dateData[member].toFixed(2)}</b>`;
                         if (showDelta) {
                             const idx = rawData.dates.indexOf(date);
-                            const prevDate = rawData.dates[idx-1];
-                            if (prevDate && rawData.dataByDate[prevDate][member]) {
-                                const delta = dateData[member] - rawData.dataByDate[prevDate][member];
-                                td.innerHTML += ` <span class="delta ${delta > 0 ? 'negative' : 'positive'}">${delta > 0 ? '+' : ''}${delta.toFixed(2)}</span>`;
+                            let prevWeight = null;
+                            // 向上寻找最近的一个有数据的日期进行对比
+                            for(let i = idx - 1; i >= 0; i--) {
+                                if(rawData.dataByDate[rawData.dates[i]][member] !== undefined) {
+                                    prevWeight = rawData.dataByDate[rawData.dates[i]][member];
+                                    break;
+                                }
+                            }
+                            if (prevWeight !== null) {
+                                const delta = dateData[member] - prevWeight;
+                                td.innerHTML += `<br><span class="delta ${delta > 0 ? 'negative' : 'positive'}">${delta > 0 ? '+' : ''}${delta.toFixed(2)}</span>`;
                             }
                         }
-                    } else td.textContent = '-';
+                    } else {
+                        td.textContent = '-';
+                    }
+                    row.appendChild(td);
+                });
+                tableBody.appendChild(row);
+            });
+        }
+
+        async function refreshData() {
+            const jsonData = await fetchData();
+            if (!jsonData) return;
+            const isFirstLoad = !rawData.members;
+            rawData = processData(jsonData);
+            if (isFirstLoad) renderFilters();
+            renderChart();
+            renderTable();
+            renderCandlestickCharts();
+            document.getElementById('updateTime').textContent = new Date().toLocaleTimeString();
+        }
+
+        window.onload = refreshData;
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>体重追踪看板</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.3.0/build/global/luxon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.2.0/dist/chartjs-chart-financial.min.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --primary-color-dark: #2980b9;
+            --text-color: #2c3e50;
+            --background-color: #f4f7f9;
+            --panel-background: #ffffff;
+            --border-color: #e2e8f0;
+            --success-color: #27ae60;
+            --danger-color: #e74c3c;
+            --font-family: 'Segoe UI', 'Helvetica Neue', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: var(--font-family); max-width: 1200px; margin: 0 auto; padding: 20px; background: var(--background-color); color: var(--text-color); line-height: 1.6; }
+        .header { text-align: center; margin-bottom: 30px; padding: 20px; background: var(--panel-background); border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06); }
+        .dashboard { display: grid; grid-template-columns: 1fr; gap: 25px; }
+        .panel { background: var(--panel-background); border-radius: 12px; padding: 25px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.07); }
+        .panel-title { font-size: 1.4rem; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); color: var(--primary-color); display: flex; align-items: center; justify-content: space-between; }
+        
+        .controls { display: flex; flex-wrap: wrap; gap: 15px; margin: 20px 0; padding: 15px; background: #f8fafc; border-radius: 8px; align-items: center; }
+        .filter-group { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+        .date-filter-group { display: flex; align-items: center; gap: 8px; margin-left: auto; font-size: 0.9em; font-weight: bold; }
+        .date-filter-group input { padding: 5px; border: 1px solid var(--border-color); border-radius: 4px; }
+
+        .user-filter { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: #edf2f7; border-radius: 20px; cursor: pointer; }
+        .user-filter span { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 5px; }
+
+        button { background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        #chartContainer { position: relative; height: 400px; width: 100%; }
+        .candlestick-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin: 30px 0; }
+        .candlestick-chart-wrapper { position: relative; height: 300px; border: 1px solid var(--border-color); padding: 10px; border-radius: 8px; }
+        .candlestick-title { text-align: center; font-weight: bold; margin-bottom: 10px; }
+        
+        /* 优化后的表格样式 */
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        th, td { padding: 12px 8px; text-align: center; border: 1px solid var(--border-color); word-wrap: break-word; }
+        th { background-color: #f1f5f9; font-weight: bold; }
+        .delta { font-size: 0.75em; padding: 2px 4px; border-radius: 4px; display: inline-block; margin-top: 2px; }
+        .positive { color: var(--success-color); background: rgba(39, 174, 96, 0.1); }
+        .negative { color: var(--danger-color); background: rgba(231, 76, 60, 0.1); }
+        
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @media (max-width: 768px) { .candlestick-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>📉 Body Weight</h1>
+        <p>数据更新时间: <span id="updateTime">--</span></p>
+    </div>
+
+    <div class="dashboard">
+        <div class="panel">
+            <div class="panel-title"><span>体重变化趋势图</span></div>
+            <div class="controls">
+                <div class="filter-group" id="filterContainer"></div>
+                <div class="date-filter-group">
+                    <label>从: <input type="date" id="startDate" onchange="renderChart()"></label>
+                    <label>至: <input type="date" id="endDate" onchange="renderChart()"></label>
+                </div>
+                <button onclick="refreshData()">刷新数据</button>
+            </div>
+            <div id="chartContainer">
+                <canvas id="weightChart"></canvas>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title"><span>成员周K线图</span></div>
+            <div id="candlestickChartsContainer" class="candlestick-grid"></div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">
+                <span>详细数据表</span>
+                <label style="cursor:pointer; font-size: 0.8em;"><input type="checkbox" id="showDelta" onchange="renderTable()"> 显示变化量</label>
+            </div>
+            <div style="max-height: 500px; overflow-y: auto; border: 1px solid var(--border-color);">
+                <table id="weightTable">
+                    <thead><tr id="tableHeader"></tr></thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CONFIG = {
+            SHEET_ID: "1MOELPmNQ0M9cFupYic6MTSKrBq8aehRdJ-sILfPoTOw",
+            MEMBER_COLORS: { 'PD': '#5599FF', 'SF': '#BC1717', 'WJ': '#FFA500', 'AX': '#800080', 'YC': '#000000', 'GL': '#FFCE56' },
+            DEFAULT_MEMBERS: ['PD', 'SF', 'WJ']
+        };
+
+        let rawData = {};
+        let candlestickCharts = [];
+
+        async function fetchData() {
+            const url = `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq?tqx=out:json&t=${Date.now()}`;
+            try {
+                const response = await fetch(url);
+                const text = await response.text();
+                const jsonMatch = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);/);
+                return JSON.parse(jsonMatch[1]);
+            } catch (error) { return null; }
+        }
+
+        function processData(jsonData) {
+            const { cols, rows } = jsonData.table;
+            const members = cols.slice(1).map(col => col.label).filter(Boolean);
+            const dataByDate = {};
+            const allWeights = [];
+            rows.forEach(row => {
+                const dateCell = row.c[0];
+                if (!dateCell || !dateCell.v) return;
+                let date;
+                const dateMatch = dateCell.v.match(/Date\((\d+),(\d+),(\d+)\)/);
+                date = dateMatch ? new Date(dateMatch[1], dateMatch[2], dateMatch[3]) : new Date(dateCell.v);
+                const isoDate = date.toISOString().split('T')[0];
+                const dateData = { date: isoDate, rawDate: date };
+                members.forEach((member, idx) => {
+                    const weightCell = row.c[idx + 1];
+                    if (weightCell && weightCell.v !== null) {
+                        const weight = parseFloat(weightCell.v);
+                        dateData[member] = weight;
+                        allWeights.push({ member, date: isoDate, weight });
+                    }
+                });
+                dataByDate[isoDate] = dateData;
+            });
+            const sortedDates = Object.keys(dataByDate).sort((a, b) => new Date(a) - new Date(b));
+            return { members, dates: sortedDates, dataByDate, allWeights };
+        }
+
+        function renderFilters() {
+            const container = document.getElementById('filterContainer');
+            container.innerHTML = '<strong>成员：</strong>';
+            rawData.members.forEach(member => {
+                const isChecked = CONFIG.DEFAULT_MEMBERS.includes(member) ? 'checked' : '';
+                const filter = document.createElement('label');
+                filter.className = 'user-filter';
+                filter.innerHTML = `<input type="checkbox" name="user" value="${member}" ${isChecked} onchange="renderChart()"><span style="background:${CONFIG.MEMBER_COLORS[member] || '#ccc'}"></span>${member}`;
+                container.appendChild(filter);
+            });
+            
+            // 日期初始值设为有数据的范围
+            const validDates = rawData.dates.filter(d => {
+                return rawData.members.some(m => rawData.dataByDate[d][m] !== undefined);
+            });
+            document.getElementById('startDate').value = validDates[0];
+            document.getElementById('endDate').value = validDates[validDates.length - 1];
+        }
+
+        function renderChart() {
+            const canvasId = 'weightChart';
+            const existingChart = Chart.getChart(canvasId);
+            if (existingChart) existingChart.destroy();
+            
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            const selectedMembers = Array.from(document.querySelectorAll('input[name="user"]:checked')).map(el => el.value);
+            const startLimit = document.getElementById('startDate').value;
+            const endLimit = document.getElementById('endDate').value;
+
+            const datasets = selectedMembers.map(member => ({
+                label: member,
+                data: rawData.dates
+                    .filter(d => d >= startLimit && d <= endLimit)
+                    .map(date => ({
+                        x: rawData.dataByDate[date].rawDate,
+                        y: rawData.dataByDate[date][member]
+                    })).filter(p => p.y !== undefined),
+                borderColor: CONFIG.MEMBER_COLORS[member],
+                backgroundColor: CONFIG.MEMBER_COLORS[member] + '30',
+                borderWidth: 2,
+                pointRadius: 1,
+                pointHoverRadius: 4,
+                tension: 0.3,
+                fill: false
+            }));
+
+            new Chart(ctx, {
+                type: 'line',
+                data: { datasets },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        x: { 
+                            type: 'time', 
+                            time: { unit: 'day', displayFormats: { day: 'MM-dd' } },
+                            title: { display: true, text: '日期 date', font: { weight: 'bold' } },
+                            ticks: { font: { weight: 'bold' } }
+                        },
+                        y: { 
+                            title: { display: true, text: '体重 kg', font: { weight: 'bold' } },
+                            ticks: { font: { weight: 'bold' } }
+                        }
+                    },
+                    plugins: { 
+                        legend: { 
+                            position: 'top',
+                            labels: { 
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                                boxWidth: 8,  // [MODIFIED] 调小 Legend 圆点宽度
+                                boxHeight: 8  // [MODIFIED] 调小 Legend 圆点高度
+                            }
+                        } 
+                    }
+                }
+            });
+        }
+
+        function calculateWeeklyData(member, allWeights) {
+            const memberWeights = allWeights.filter(d => d.member === member && d.weight);
+            if (memberWeights.length === 0) return [];
+            const weeklyData = {};
+            memberWeights.forEach(d => {
+                const date = luxon.DateTime.fromISO(d.date);
+                const weekStartSunday = date.minus({ days: (date.weekday % 7) });
+                const weekKey = weekStartSunday.toISODate();
+                if (!weeklyData[weekKey]) weeklyData[weekKey] = { date: weekStartSunday, points: [] };
+                weeklyData[weekKey].points.push({ date: date, weight: d.weight, day: date.weekday });
+            });
+            return Object.keys(weeklyData).map(weekKey => {
+                const week = weeklyData[weekKey];
+                week.points.sort((a, b) => a.date - b.date);
+                const openData = week.points.find(p => p.day === 7) || week.points[0];
+                const closeData = week.points.find(p => p.day === 6) || week.points[week.points.length - 1];
+                return { x: week.date.valueOf(), o: openData.weight, h: Math.max(...week.points.map(p => p.weight)), l: Math.min(...week.points.map(p => p.weight)), c: closeData.weight };
+            }).sort((a, b) => a.x - b.x);
+        }
+
+        function renderCandlestickCharts() {
+            const container = document.getElementById('candlestickChartsContainer');
+            candlestickCharts.forEach(chart => chart.destroy());
+            candlestickCharts = []; container.innerHTML = '';
+
+            rawData.members.forEach(member => {
+                const weeklyData = calculateWeeklyData(member, rawData.allWeights);
+                if (weeklyData.length === 0) return;
+                const wrapper = document.createElement('div');
+                wrapper.className = 'candlestick-chart-wrapper';
+                const title = document.createElement('div');
+                title.className = 'candlestick-title'; 
+                title.textContent = `${member} weekly`;
+                const canvas = document.createElement('canvas');
+                wrapper.appendChild(title); wrapper.appendChild(canvas);
+                container.appendChild(wrapper);
+                const newChart = new Chart(canvas.getContext('2d'), {
+                    type: 'candlestick',
+                    data: {
+                        datasets: [{
+                            label: member,
+                            data: weeklyData,
+                            borderColor: c => c.raw.c > c.raw.o ? '#e74c3c' : '#27ae60',
+                            backgroundColor: c => c.raw.c > c.raw.o ? '#e74c3c' : '#27ae60',
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
+                candlestickCharts.push(newChart);
+            });
+        }
+
+        function renderTable() {
+            const showDelta = document.getElementById('showDelta').checked;
+            const headerRow = document.getElementById('tableHeader');
+            const tableBody = document.getElementById('tableBody');
+            
+            // [MODIFIED] 重新设计表头，确保对齐
+            headerRow.innerHTML = '<th style="width: 120px;">日期</th>';
+            rawData.members.forEach(m => {
+                const th = document.createElement('th');
+                th.textContent = m;
+                th.style.color = CONFIG.MEMBER_COLORS[m];
+                headerRow.appendChild(th);
+            });
+
+            tableBody.innerHTML = '';
+            [...rawData.dates].reverse().forEach(date => {
+                const dateData = rawData.dataByDate[date];
+                
+                // [NEW] 需求3：自动不显示全空行逻辑
+                const hasAnyData = rawData.members.some(member => dateData[member] !== undefined);
+                if (!hasAnyData) return; // 跳过全空行
+
+                const row = document.createElement('tr');
+                const dateCell = document.createElement('td');
+                dateCell.textContent = date;
+                row.appendChild(dateCell);
+
+                rawData.members.forEach(member => {
+                    const td = document.createElement('td');
+                    if (dateData[member] !== undefined) {
+                        td.innerHTML = `<b>${dateData[member].toFixed(2)}</b>`;
+                        if (showDelta) {
+                            const idx = rawData.dates.indexOf(date);
+                            let prevWeight = null;
+                            // 向上寻找最近的一个有数据的日期进行对比
+                            for(let i = idx - 1; i >= 0; i--) {
+                                if(rawData.dataByDate[rawData.dates[i]][member] !== undefined) {
+                                    prevWeight = rawData.dataByDate[rawData.dates[i]][member];
+                                    break;
+                                }
+                            }
+                            if (prevWeight !== null) {
+                                const delta = dateData[member] - prevWeight;
+                                td.innerHTML += `<br><span class="delta ${delta > 0 ? 'negative' : 'positive'}">${delta > 0 ? '+' : ''}${delta.toFixed(2)}</span>`;
+                            }
+                        }
+                    } else {
+                        td.textContent = '-';
+                    }
                     row.appendChild(td);
                 });
                 tableBody.appendChild(row);
